@@ -21,9 +21,14 @@ struct SavedView: View {
                         ForEach(viewModel.filtered, id: \.storyID) { saved in
                             let cached = viewModel.cachedStories[saved.storyID]
                             SavedRow(saved: saved, cached: cached)
-                                .onTapGesture { selectedStoryID = saved.storyID }
+                                .onTapGesture {
+                                    SoundManager.playNavigationTap()
+                                    HapticsManager.lightImpact()
+                                    selectedStoryID = saved.storyID
+                                }
                                 .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                                     Button(role: .destructive) {
+                                        SoundManager.playDestructive()
                                         withAnimation(reduceMotion ? nil : .spring(response: 0.3)) {
                                             viewModel.unsave(saved)
                                         }

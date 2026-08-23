@@ -23,6 +23,7 @@ struct HomeView: View {
                     Menu {
                         ForEach(FeedType.allCases) { feed in
                             Button {
+                                SoundManager.playSelectionTick()
                                 viewModel.selectedFeed = feed
                                 HapticsManager.selectionChanged()
                             } label: {
@@ -55,6 +56,7 @@ struct HomeView: View {
             HStack(spacing: 8) {
                 ForEach(FeedType.allCases) { feed in
                     Button {
+                        SoundManager.playSelectionTick()
                         viewModel.selectedFeed = feed
                         HapticsManager.selectionChanged()
                     } label: {
@@ -125,6 +127,8 @@ struct HomeView: View {
                         .listRowInsets(EdgeInsets())
                         .listRowSeparator(.hidden)
                         .onTapGesture {
+                            SoundManager.playNavigationTap()
+                            HapticsManager.lightImpact()
                             selectedStoryID = story.id
                         }
                         .onAppear {

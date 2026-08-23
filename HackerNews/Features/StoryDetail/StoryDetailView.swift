@@ -78,6 +78,7 @@ struct StoryDetailView: View {
                     .padding(.top, 16)
                 } else {
                     EmptyStateView(icon: "exclamationmark.triangle", title: "Failed to load", message: viewModel.errorMessage ?? "Unknown error", actionTitle: "Retry") {
+                        SoundManager.playTap()
                         Task { await viewModel.load() }
                     }
                 }
@@ -90,6 +91,7 @@ struct StoryDetailView: View {
             ToolbarItem(placement: .topBarTrailing) {
                 HStack(spacing: 12) {
                     Button {
+                        // Sound + haptics handled inside toggleSave -> playSave/Unsave
                         viewModel.toggleSave()
                     } label: {
                         Image(systemName: viewModel.isSaved ? "bookmark.fill" : "bookmark")
@@ -99,6 +101,8 @@ struct StoryDetailView: View {
 
                     if viewModel.shareURL() != nil {
                         Button {
+                            SoundManager.playTap()
+                            HapticsManager.lightImpact()
                             showShareSheet = true
                         } label: {
                             Image(systemName: "square.and.arrow.up")
@@ -159,6 +163,7 @@ struct StoryDetailView: View {
 
             if story.url != nil {
                 Button {
+                    SoundManager.playNavigationTap()
                     viewModel.showSafari = true
                     HapticsManager.lightImpact()
                 } label: {

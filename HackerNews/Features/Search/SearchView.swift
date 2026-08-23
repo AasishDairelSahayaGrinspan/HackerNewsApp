@@ -19,7 +19,11 @@ struct SearchView: View {
                                 StoryRowView(story: story, isSaved: viewModel.isSaved(story), onSaveTap: { viewModel.toggleSave(story) })
                                     .listRowInsets(EdgeInsets())
                                     .listRowSeparator(.hidden)
-                                    .onTapGesture { selectedStoryID = story.id }
+                                    .onTapGesture {
+                                        SoundManager.playNavigationTap()
+                                        HapticsManager.lightImpact()
+                                        selectedStoryID = story.id
+                                    }
                             }
                         }
                     }

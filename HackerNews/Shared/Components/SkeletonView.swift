@@ -75,9 +75,13 @@ struct EmptyStateView: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
             if let actionTitle, let action {
-                Button(actionTitle, action: action)
-                    .buttonStyle(.borderedProminent)
-                    .tint(.orange)
+                Button(actionTitle) {
+                    SoundManager.playTap()
+                    HapticsManager.lightImpact()
+                    action()
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.orange)
             }
         }
         .padding(32)

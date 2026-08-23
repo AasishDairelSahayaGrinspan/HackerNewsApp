@@ -79,8 +79,13 @@ struct RootTabView: View {
                 .tag(3)
         }
         .tint(.orange)
+        .onChange(of: selectedTab) { _, _ in
+            SoundManager.playSelectionTick()
+            HapticsManager.selectionChanged()
+        }
         .onReceive(NotificationCenter.default.publisher(for: .openStoryDeepLink)) { notif in
             if let id = notif.object as? Int {
+                SoundManager.playNavigationTap()
                 deepLinkStoryID = id
                 selectedTab = 0
             }

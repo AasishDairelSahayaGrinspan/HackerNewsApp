@@ -18,7 +18,11 @@ struct CommentRowView: View {
                 }
                 Spacer()
                 if !node.children.isEmpty {
-                    Button(action: onToggleCollapse) {
+                    Button {
+                        SoundManager.playSelectionTick()
+                        HapticsManager.lightImpact()
+                        onToggleCollapse()
+                    } label: {
                         Image(systemName: node.isCollapsed ? "chevron.right.circle.fill" : "chevron.down.circle.fill")
                             .font(.caption)
                             .foregroundStyle(.secondary)
@@ -108,6 +112,7 @@ struct CommentTreeView: View {
             for i in ns.indices {
                 if ns[i].id == nodeID {
                     ns[i].isCollapsed.toggle()
+                    SoundManager.playSelectionTick()
                     HapticsManager.lightImpact()
                     return true
                 }
