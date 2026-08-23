@@ -1,0 +1,79 @@
+name: HackerNews
+createIntermediateGroups: true
+xcodeVersion: "15.0"
+deploymentTarget:
+  iOS: "17.0"
+
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    SWIFT_EMIT_LOC_STRINGS: YES
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "1"
+    IPHONEOS_DEPLOYMENT_TARGET: "17.0"
+  configs:
+    Debug:
+      SWIFT_OPTIMIZATION_LEVEL: "-Onone"
+      SWIFT_COMPILATION_MODE: singlefile
+      DEBUG_INFORMATION_FORMAT: dwarf
+
+targets:
+  HackerNews:
+    type: application
+    platform: iOS
+    deploymentTarget: "17.0"
+    bundleId: com.aasishdarrel.hacknews
+    info:
+      path: HackerNews/Info.plist
+      properties:
+        CFBundleDisplayName: Hacker News
+        CFBundleName: HackerNews
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        CFBundleURLTypes:
+          - CFBundleURLName: com.hacknews.deeplink
+            CFBundleURLSchemes: [hnreader]
+        LSApplicationQueriesSchemes: [https, http]
+        UIBackgroundModes: [fetch]
+        ITSAppUsesNonExemptEncryption: false
+    sources:
+      - HackerNews
+    settings:
+      base:
+        INFOPLIST_FILE: HackerNews/Info.plist
+        PRODUCT_BUNDLE_IDENTIFIER: com.aasishdarrel.hacknews
+        SWIFT_OBJC_BRIDGING_HEADER: HackerNews/HackerNews-Bridging-Header.h
+        SWIFT_EMIT_LOC_STRINGS: YES
+        CLANG_CXX_LANGUAGE_STANDARD: c++20
+        CLANG_CXX_LIBRARY: libc++
+        HEADER_SEARCH_PATHS: $(SRCROOT)/HackerNews/Core/CppCore/include
+        OTHER_CFLAGS: -I$(SRCROOT)/HackerNews/Core/CppCore/include
+        CODE_SIGN_STYLE: Automatic
+        CODE_SIGN_IDENTITY: "Apple Development"
+        DEVELOPMENT_TEAM: L8HTG27444
+        CODE_SIGNING_ALLOWED: YES
+        ENABLE_PREVIEWS: YES
+    dependencies: []
+
+  HackerNewsTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "17.0"
+    bundleId: com.hacknews.tests
+    sources: [HackerNewsTests]
+    dependencies:
+      - target: HackerNews
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.hacknews.tests
+        CODE_SIGN_STYLE: Automatic
+        CODE_SIGNING_ALLOWED: YES
+        GENERATE_INFOPLIST_FILE: YES
