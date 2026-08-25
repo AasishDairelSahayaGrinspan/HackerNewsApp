@@ -98,43 +98,25 @@ struct LaunchAnimationView: View {
         onComplete()
     }
 
-    // MARK: - Cinematic (950ms)
-
+    // MARK: - Cinematic (1050ms) — one → white split → 3D arm extrusion → dolly
     private var cinematicBody: some View {
         ZStack {
-            // Faux extrusion — 10 layers for real depth, each 1pt z-offset, darker orange side
-            ZStack {
-                ForEach(0..<10, id: \.self) { i in
-                    let depth = CGFloat(i)
-                    HNLogoShape()
-                        .fill(Color(hex: 0xB84D00).opacity(Double(i) * 0.032))
-                        .frame(width: 164, height: 164)
-                        .offset(y: depth * 1.05)
-                        .scaleEffect(1 - depth * 0.0038)
-                        .opacity(i == 9 ? 0 : 1)
-                        
-                }
-            }
-            .opacity(extrude > 0 ? Double(extrude * (1 - split * 0.65)) : 0)
-            .allowsHitTesting(false)
-
-            // Split pieces overlay
-            YSplitPieces(split: split, extrude: extrude, rotY: rotY, rotX: rotX, dollyScale: dollyScale)
-
-            // Unified cap — fades to pieces as split →1
+            // Stage 1-2: unified white Y (flat) — visible until split replaces it
             HNLogoShape()
                 .fill(Color.white)
                 .frame(width: 164, height: 164)
                 .shadow(color: .black.opacity(0.22), radius: 16, x: 0, y: 8)
                 .scaleEffect(initialScale)
-                .opacity(Double(1 - split * 0.96))
+                .opacity(Double(1 - split * 0.98))
                 .opacity(initialOpacity)
-                .rotation3DEffect(.degrees(rotY * 0.45), axis: (x: 0, y: 1, z: 0), perspective: 0.54)
-                .rotation3DEffect(.degrees(rotX * 0.45), axis: (x: 1, y: 0, z: 0), perspective: 0.54)
-                
+                .rotation3DEffect(.degrees(rotY * 0.35), axis: (x: 0, y: 1, z: 0), perspective: 0.54)
+                .rotation3DEffect(.degrees(rotX * 0.35), axis: (x: 1, y: 0, z: 0), perspective: 0.54)
+
+            // Stage 2-4: three white arms — first flat white split, then per-arm 3D extrusion
+            YSplitPieces(split: split, extrude: extrude, rotY: rotY, rotX: rotX, dollyScale: dollyScale)
         }
-        .rotation3DEffect(.degrees(rotY * 0.26), axis: (x: 0, y: 1, z: 0), perspective: 0.54)
-        .rotation3DEffect(.degrees(rotX * 0.20), axis: (x: 1, y: 0, z: 0), perspective: 0.54)
+        .rotation3DEffect(.degrees(rotY * 0.22), axis: (x: 0, y: 1, z: 0), perspective: 0.54)
+        .rotation3DEffect(.degrees(rotX * 0.16), axis: (x: 1, y: 0, z: 0), perspective: 0.54)
         .scaleEffect(dollyScale)
         .scaleEffect(initialScale)
         .opacity(initialOpacity)
@@ -144,43 +126,42 @@ struct LaunchAnimationView: View {
     }
 
     private func runCinematic() async {
-        // Stage 1: 0–150ms appear flat Y (scale 0.86→1, opacity 0→1)
+        // Stage 1: 0–170ms — one white Y appears flat (scale 0.86→1, opacity 0→1) — premium hold
         withAnimation(.timingCurve(0.2, 0.84, 0.24, 1, duration: 0.16)) {
             initialScale = 1.0
             initialOpacity = 1
         }
-        try? await Task.sleep(nanoseconds: 170_000_000)
+        try? await Task.sleep(nanoseconds: 200_000_000)
 
-        // Stage 2: 150–400ms split begins (simultaneous with depth onset)
-        withAnimation(.timingCurve(0.42, 0.0, 0.58, 1, duration: 0.26)) {
+        // Stage 2: 170–420ms — split like white (flat white 3 arms separate, no 3D yet)
+        withAnimation(.timingCurve(0.38, 0.0, 0.22, 1, duration: 0.24)) {
             split = 1
-            extrude = 0.55
         }
-        try? await Task.sleep(nanoseconds: 120_000_000)
+        try? await Task.sleep(nanoseconds: 230_000_000)
 
-        // Stage 3: 400–700ms extrusion → 3D, rotation, light perspective
-        withAnimation(.timingCurve(0.22, 0.68, 0.32, 1, duration: 0.32)) {
+        // Stage 3: 420–720ms — arm in 3-D extrusion (per-arm depth + rotation)
+        withAnimation(.timingCurve(0.22, 0.68, 0.32, 1, duration: 0.30)) {
             extrude = 1
             rotY = 14
             rotX = -7
         }
-        try? await Task.sleep(nanoseconds: 220_000_000)
+        try? await Task.sleep(nanoseconds: 300_000_000)
 
-        // Stage 4: 700–950ms dolly toward camera (logo becomes huge, passes camera)
-        withAnimation(.timingCurve(0.32, 0.08, 0.24, 1, duration: 0.28)) {
-            dollyScale = 2.9
-            rotY = -6
-            rotX = 5
+        // Stage 4: 720–970ms — dolly toward camera (logo huge, passes camera)
+        withAnimation(.timingCurve(0.32, 0.08, 0.24, 1, duration: 0.26)) {
+            dollyScale = 3.0
+            rotY = -5
+            rotX = 4
             dollyProgress = 1
         }
         try? await Task.sleep(nanoseconds: 140_000_000)
-        // Stage 5: 950–1080ms mask reveal into UI
+
+        // Stage 5: 970–1090ms — reveal into UI
         withAnimation(.timingCurve(0.4, 0.0, 0.2, 1, duration: 0.18)) {
             reveal = 1
         }
         try? await Task.sleep(nanoseconds: 160_000_000)
         completed = true
-        // Small haptic tick at peak for premium feel (mirrors existing HapticsManager language)
         HapticsManager.selectionChanged()
         onComplete()
     }
@@ -196,43 +177,41 @@ private struct YSplitPieces: View {
     var dollyScale: CGFloat
 
     var body: some View {
-        // We create three pieces by masking the Y shape to its arms/stem region.
-        // Masks are simple rectangles covering left arm, right arm, stem zones.
         ZStack {
-            // Left arm piece
-            YPiece(region: .leftArm)
-                .offset(x: -split * 18, y: -split * 4 - extrude * 1.5)
-                .rotationEffect(.degrees(-split * 6))
-                .rotation3DEffect(.degrees(rotY * 0.9 + split * -8), axis: (x: 0, y: 1, z: 0), perspective: 0.52)
-                .rotation3DEffect(.degrees(rotX * 0.6), axis: (x: 1, y: 0, z: 0), perspective: 0.52)
-                .shadow(color: .black.opacity(0.18 * Double(split)), radius: 10 * split, y: 6 * split)
+            // Left arm — white split first, then per-arm 3D extrusion
+            YPiece(region: .leftArm, extrude: extrude)
+                .offset(x: -split * 20, y: -split * 5)
+                .rotationEffect(.degrees(-split * 5))
+                .rotation3DEffect(.degrees(rotY * 0.85 + split * -7), axis: (x: 0, y: 1, z: 0), perspective: 0.54)
+                .rotation3DEffect(.degrees(rotX * 0.55), axis: (x: 1, y: 0, z: 0), perspective: 0.54)
+                .shadow(color: .black.opacity(0.16 * Double(split)), radius: 9 * split, y: 5 * split)
 
-            // Right arm piece
-            YPiece(region: .rightArm)
-                .offset(x: split * 18, y: -split * 4 - extrude * 1.5)
-                .rotationEffect(.degrees(split * 6))
-                .rotation3DEffect(.degrees(rotY * 0.9 + split * 8), axis: (x: 0, y: 1, z: 0), perspective: 0.52)
-                .rotation3DEffect(.degrees(rotX * 0.6), axis: (x: 1, y: 0, z: 0), perspective: 0.52)
-                .shadow(color: .black.opacity(0.18 * Double(split)), radius: 10 * split, y: 6 * split)
+            // Right arm
+            YPiece(region: .rightArm, extrude: extrude)
+                .offset(x: split * 20, y: -split * 5)
+                .rotationEffect(.degrees(split * 5))
+                .rotation3DEffect(.degrees(rotY * 0.85 + split * 7), axis: (x: 0, y: 1, z: 0), perspective: 0.54)
+                .rotation3DEffect(.degrees(rotX * 0.55), axis: (x: 1, y: 0, z: 0), perspective: 0.54)
+                .shadow(color: .black.opacity(0.16 * Double(split)), radius: 9 * split, y: 5 * split)
 
-            // Stem piece (drives forward most, feels like passing camera)
-            YPiece(region: .stem)
-                .offset(y: split * 10 + extrude * 2)
-                .rotation3DEffect(.degrees(rotY * -0.45), axis: (x: 0, y: 1, z: 0), perspective: 0.52)
-                .rotation3DEffect(.degrees(rotX * 0.8 + split * 4), axis: (x: 1, y: 0, z: 0), perspective: 0.52)
-                .shadow(color: .black.opacity(0.20 * Double(split)), radius: 14 * split, y: 8 * split)
+            // Stem — drives forward in dolly
+            YPiece(region: .stem, extrude: extrude)
+                .offset(y: split * 12)
+                .rotation3DEffect(.degrees(rotY * -0.42), axis: (x: 0, y: 1, z: 0), perspective: 0.54)
+                .rotation3DEffect(.degrees(rotX * 0.75 + split * 3), axis: (x: 1, y: 0, z: 0), perspective: 0.54)
+                .shadow(color: .black.opacity(0.18 * Double(split)), radius: 12 * split, y: 7 * split)
         }
         .frame(width: 164, height: 164)
-        .opacity(split > 0.05 ? 1 : 0)
-        .scaleEffect(dollyScale > 1.5 ? (1 + (dollyScale - 1.5) * 0.12) : 1) // stem leads
+        .opacity(split > 0.04 ? 1 : 0)
+        .scaleEffect(dollyScale > 1.5 ? (1 + (dollyScale - 1.5) * 0.10) : 1)
     }
 }
 
 private struct YPiece: View {
     enum Region { case leftArm, rightArm, stem }
     var region: Region
+    var extrude: CGFloat = 0
     var body: some View {
-        // True Y arms as capsules — each arm is the real Y capsule, not a rectangular clip
         let size: CGFloat = 164
         let w = size; let h = size
         let cx = w/2; let junctionY = h * 0.522; let armTopY = h * 0.288
@@ -243,6 +222,44 @@ private struct YPiece: View {
         let stemLen = stemBottomY - junctionY
 
         return ZStack {
+            // Per-arm extrusion — darker capsules behind white when extrude >0 (arm in 3-D)
+            if extrude > 0.02 {
+                let depthCount = 7
+                ForEach(0..<depthCount, id: \.self) { i in
+                    let d = CGFloat(i+1) * extrude
+                    let alpha = Double(i+1) * 0.028 * Double(extrude)
+                    Group {
+                        if region == .leftArm {
+                            let len = hypot(leftDX, leftDY)
+                            let midX = (leftX + cx)/2 - w/2
+                            let midY = (armTopY + junctionY)/2 - h/2
+                            let angle = atan2(leftDY, leftDX) * 180 / .pi - 90
+                            Capsule().fill(Color(hex: 0x8A3D00).opacity(alpha))
+                                .frame(width: strokeW, height: len)
+                                .rotationEffect(.degrees(angle))
+                                .offset(x: midX, y: midY + d * 0.9)
+                                .scaleEffect(1 - d * 0.003)
+                        } else if region == .rightArm {
+                            let len = hypot(rightDX, rightDY)
+                            let midX = (rightX + cx)/2 - w/2
+                            let midY = (armTopY + junctionY)/2 - h/2
+                            let angle = atan2(rightDY, rightDX) * 180 / .pi - 90
+                            Capsule().fill(Color(hex: 0x8A3D00).opacity(alpha))
+                                .frame(width: strokeW, height: len)
+                                .rotationEffect(.degrees(angle))
+                                .offset(x: midX, y: midY + d * 0.9)
+                                .scaleEffect(1 - d * 0.003)
+                        } else {
+                            let midY = (junctionY + stemBottomY)/2 - h/2
+                            Capsule().fill(Color(hex: 0x8A3D00).opacity(alpha))
+                                .frame(width: strokeW, height: stemLen)
+                                .offset(y: midY + d * 0.9)
+                                .scaleEffect(1 - d * 0.003)
+                        }
+                    }
+                }
+            }
+            // White on top
             if region == .leftArm {
                 let len = hypot(leftDX, leftDY)
                 let midX = (leftX + cx)/2 - w/2
@@ -252,7 +269,7 @@ private struct YPiece: View {
                     .frame(width: strokeW, height: len)
                     .rotationEffect(.degrees(angle))
                     .offset(x: midX, y: midY)
-                    .shadow(color: .black.opacity(0.10), radius: 4, y: 2)
+                    .shadow(color: .black.opacity(0.08), radius: 3, y: 1)
             } else if region == .rightArm {
                 let len = hypot(rightDX, rightDY)
                 let midX = (rightX + cx)/2 - w/2
@@ -262,13 +279,13 @@ private struct YPiece: View {
                     .frame(width: strokeW, height: len)
                     .rotationEffect(.degrees(angle))
                     .offset(x: midX, y: midY)
-                    .shadow(color: .black.opacity(0.10), radius: 4, y: 2)
+                    .shadow(color: .black.opacity(0.08), radius: 3, y: 1)
             } else {
                 let midY = (junctionY + stemBottomY)/2 - h/2
                 Capsule().fill(Color.white)
                     .frame(width: strokeW, height: stemLen)
                     .offset(y: midY)
-                    .shadow(color: .black.opacity(0.10), radius: 4, y: 2)
+                    .shadow(color: .black.opacity(0.08), radius: 3, y: 1)
             }
         }
         .frame(width: size, height: size)
