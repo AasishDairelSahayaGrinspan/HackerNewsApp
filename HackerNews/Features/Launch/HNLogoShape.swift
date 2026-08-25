@@ -7,25 +7,17 @@ struct HNLogoShape: Shape {
     func path(in rect: CGRect) -> Path {
         let w = rect.width
         let h = rect.height
-        // Proportional metrics — mirrors generate_icon.py:
-        // cx = 0.5, cyCenter=0.575, armTopY=0.278, stemBottom=0.772, junction=0.525, arms 0.322/0.678
+        // Premium centered Y — optical metrics tuned for legibility at small sizes (mirrors supersampled icon 0.122 stroke)
         let cx = rect.midX
-        let junctionY = rect.minY + h * 0.525
-        let armTopY = rect.minY + h * 0.278
-        let stemBottomY = rect.minY + h * 0.772
-        let leftX = rect.minX + w * 0.322
-        let rightX = rect.minX + w * 0.678
-        let strokeW = w * 0.125
-        let r = strokeW / 2
+        let junctionY = rect.minY + h * 0.522
+        let armTopY = rect.minY + h * 0.288
+        let stemBottomY = rect.minY + h * 0.760
+        let leftX = rect.minX + w * 0.318
+        let rightX = rect.minX + w * 0.682
+        let strokeW = w * 0.122
 
         var path = Path()
-        // We draw as thick stroke polygon for perfect shape control via Path
-        // Approach: draw three capsules (rounded rects rotated) and union via path add.
-        // Simpler: use addPath with stroked line via CoreGraphics stroke?
-        // Here we use Path + line with width using stroke style via copy: draw lines as stroked paths manually.
-        // For Shape we approximate with filled polygons with semicircles — lay down three rects angled.
 
-        // Helper: capsule line from p0 to p1
         func capsule(from p0: CGPoint, to p1: CGPoint, width: CGFloat, to path: inout Path) {
             let dx = p1.x - p0.x
             let dy = p1.y - p0.y
@@ -34,7 +26,6 @@ struct HNLogoShape: Shape {
             let nx = -dy / len
             let ny = dx / len
             let hw = width / 2
-            // Rectangle corners
             let a = CGPoint(x: p0.x + nx * hw, y: p0.y + ny * hw)
             let b = CGPoint(x: p0.x - nx * hw, y: p0.y - ny * hw)
             let c = CGPoint(x: p1.x - nx * hw, y: p1.y - ny * hw)
@@ -49,13 +40,9 @@ struct HNLogoShape: Shape {
             path.addPath(sub)
         }
 
-        // Left arm
         capsule(from: CGPoint(x: leftX, y: armTopY), to: CGPoint(x: cx, y: junctionY), width: strokeW, to: &path)
-        // Right arm
         capsule(from: CGPoint(x: rightX, y: armTopY), to: CGPoint(x: cx, y: junctionY), width: strokeW, to: &path)
-        // Stem
         capsule(from: CGPoint(x: cx, y: junctionY), to: CGPoint(x: cx, y: stemBottomY), width: strokeW, to: &path)
-        // Junction smoothing circle already covered by capsules overlap
         return path
     }
 }

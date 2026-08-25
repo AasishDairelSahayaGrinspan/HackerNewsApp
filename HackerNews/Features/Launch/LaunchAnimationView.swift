@@ -29,24 +29,33 @@ struct LaunchAnimationView: View {
     }
 
     var body: some View {
-        ZStack {
-            // Background — HN Orange for icon→launch continuity (works light/dark). Respect dark? we keep orange brand; X reference uses black/white but HN brand owns orange.
-            Color(hex: 0xFF6600)
-                .ignoresSafeArea()
-
-            // Content scaling for reveal
+        GeometryReader { proxy in
             ZStack {
-                if isReduce {
-                    reducedBody
-                } else {
-                    cinematicBody
+                // HN Orange brand continuity — same as icon, no banding
+                Color(hex: 0xFF6600)
+                    .ignoresSafeArea()
+
+                // Centered composition — sized to screen, not hard 164pt bitmap
+                ZStack {
+                    if isReduce {
+                        reducedBody
+                    } else {
+                        cinematicBody
+                    }
                 }
+                .frame(width: 164, height: 164)
+                .position(x: proxy.size.width/2, y: proxy.size.height/2)
+                .scaleEffect(reveal > 0 ? 1 + reveal * 0.06 : 1)
+                .opacity(completed ? 0 : 1)
+                // Premium crisp compositing — render at native scale, no low-res raster
+                .drawingGroup(opaque: false, colorMode: .extendedLinear)
+                .compositingGroup()
+                
             }
-            .scaleEffect(reveal > 0 ? 1 + reveal * 0.06 : 1)
-            .opacity(completed ? 0 : 1)
         }
-        // Perspective on container: use sublayerTransform equivalent via rotation3DEffect perspective 0.52
-        .task {
+        .ignoresSafeArea()
+        .task(id: isReduce) {
+            // Re-trigger task when reduce mode flips for previews
             if isReduce {
                 await runReduced()
             } else {
@@ -60,19 +69,21 @@ struct LaunchAnimationView: View {
 
     private var reducedBody: some View {
         ZStack {
-            // Subtle squircle badge behind Y for premium depth even in reduced mode
             HNSquircleShape()
-                .fill(Color.white.opacity(0.14))
-                .frame(width: 128, height: 128)
-                .blur(radius: 0)
+                .fill(Color.white.opacity(0.12))
+                .frame(width: 132, height: 132)
                 .opacity(initialOpacity)
+                .shadow(color: .black.opacity(0.16), radius: 20, y: 8)
             HNLogoShape()
                 .fill(Color.white)
                 .frame(width: 148, height: 148)
                 .scaleEffect(initialScale)
                 .opacity(initialOpacity)
-                .shadow(color: .black.opacity(0.18), radius: 16, x: 0, y: 8)
+                .shadow(color: .black.opacity(0.18), radius: 14, x: 0, y: 6)
+                
         }
+        .drawingGroup(opaque: false)
+        
     }
 
     private func runReduced() async {
@@ -94,48 +105,48 @@ struct LaunchAnimationView: View {
     // MARK: - Cinematic (950ms)
 
     private var cinematicBody: some View {
-        // Real extrusion + split. We use ZStack of depth layers behind main split pieces.
         ZStack {
-            // Depth: stacked side faces (faux extrusion) — 8 layers, each 0.9pt offset, darker orange -> physical thickness
+            // Faux extrusion — 10 layers for real depth, each 1pt z-offset, darker orange side
             ZStack {
-                ForEach(0..<9, id: \.self) { i in
+                ForEach(0..<10, id: \.self) { i in
                     let depth = CGFloat(i)
                     HNLogoShape()
-                        .fill(Color(hex: 0xCC5200).opacity(0.0 + Double(i) * 0.038))
+                        .fill(Color(hex: 0xB84D00).opacity(Double(i) * 0.032))
                         .frame(width: 164, height: 164)
-                        .offset(y: depth * 1.15)
-                        .scaleEffect(1 - depth * 0.0045)
-                        .opacity(i == 8 ? 0 : 1) // top layer is white, rest are depth
-                        .blur(radius: i > 6 ? 0.3 : 0)
+                        .offset(y: depth * 1.05)
+                        .scaleEffect(1 - depth * 0.0038)
+                        .opacity(i == 9 ? 0 : 1)
+                        
                 }
             }
             .opacity(extrude > 0 ? 1 : 0)
-            // Split pieces (3 logical: left arm, right arm, stem) — each gets independent 3D
-            HStack(spacing: 0) {}
-            .overlay {
-                YSplitPieces(split: split, extrude: extrude, rotY: rotY, rotX: rotX, dollyScale: dollyScale)
-            }
-            // Top white cap (the visible Y) — when not split, shows unified; when split, fades to pieces underneath
+            .allowsHitTesting(false)
+
+            // Split pieces overlay
+            YSplitPieces(split: split, extrude: extrude, rotY: rotY, rotX: rotX, dollyScale: dollyScale)
+
+            // Unified cap — fades to pieces as split →1
             HNLogoShape()
                 .fill(Color.white)
                 .frame(width: 164, height: 164)
-                .shadow(color: .black.opacity(0.24), radius: 18, x: 0, y: 10)
+                .shadow(color: .black.opacity(0.22), radius: 16, x: 0, y: 8)
                 .scaleEffect(initialScale)
-                .opacity(Double(1 - split * 0.95))
+                .opacity(Double(1 - split * 0.96))
                 .opacity(initialOpacity)
-                .rotation3DEffect(.degrees(rotY * 0.5), axis: (x: 0, y: 1, z: 0), perspective: 0.52)
-                .rotation3DEffect(.degrees(rotX * 0.5), axis: (x: 1, y: 0, z: 0), perspective: 0.52)
+                .rotation3DEffect(.degrees(rotY * 0.45), axis: (x: 0, y: 1, z: 0), perspective: 0.54)
+                .rotation3DEffect(.degrees(rotX * 0.45), axis: (x: 1, y: 0, z: 0), perspective: 0.54)
+                
         }
-        // Global camera: whole composition rotates slightly and dollies
-        .rotation3DEffect(.degrees(rotY * 0.28), axis: (x: 0, y: 1, z: 0), perspective: 0.52)
-        .rotation3DEffect(.degrees(rotX * 0.22), axis: (x: 1, y: 0, z: 0), perspective: 0.52)
+        .rotation3DEffect(.degrees(rotY * 0.26), axis: (x: 0, y: 1, z: 0), perspective: 0.54)
+        .rotation3DEffect(.degrees(rotX * 0.20), axis: (x: 1, y: 0, z: 0), perspective: 0.54)
         .scaleEffect(dollyScale)
         .scaleEffect(initialScale)
         .opacity(initialOpacity)
-        // Reveal mask — scaling logo to fill screen as transition to UI
         .scaleEffect(1 + reveal * 8.0)
-        .blur(radius: reveal > 0.6 ? Double((reveal - 0.6) * 8) : 0)
-        .opacity(Double(1 - reveal * 0.65))
+        .blur(radius: reveal > 0.62 ? Double((reveal - 0.62) * 9) : 0)
+        .opacity(Double(1 - reveal * 0.68))
+        
+        .drawingGroup(opaque: false)
     }
 
     private func runCinematic() async {

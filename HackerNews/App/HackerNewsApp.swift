@@ -51,6 +51,12 @@ struct HackerNewsApp: App {
             .onChange(of: scenePhase) { newPhase in
                 if newPhase == .background {
                     launchController.markBackgrounded()
+                } else if newPhase == .active {
+                    // Every foreground should reliably re-trigger animation (fixes “sometimes not coming”)
+                    // Warm quick vs cold full is decided inside controller; view also respects reduceMotion
+                    if launchController.finished {
+                        launchController.markForegrounded()
+                    }
                 }
             }
         }
