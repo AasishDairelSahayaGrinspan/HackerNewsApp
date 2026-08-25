@@ -5,7 +5,9 @@ import SwiftData
 struct HackerNewsApp: App {
     @StateObject private var settings: SettingsStore
     @StateObject private var connectivity: ConnectivityMonitor
+    @StateObject private var launchController = LaunchController()
     let persistence: PersistenceController
+    @Environment(\.scenePhase) private var scenePhase
 
     @MainActor
     init() {
@@ -16,24 +18,41 @@ struct HackerNewsApp: App {
         _settings = StateObject(wrappedValue: s)
         _connectivity = StateObject(wrappedValue: c)
         persistence = p
+        _launchController = StateObject(wrappedValue: LaunchController())
     }
 
     var body: some Scene {
         WindowGroup {
-            RootTabView()
-                .environmentObject(settings)
-                .environmentObject(connectivity)
-                .modelContainer(persistence.container)
-                .preferredColorScheme(colorScheme)
-                .onOpenURL { url in
-                    handleDeepLink(url)
-                }
-                .task {
-                    try? await Task.sleep(nanoseconds: 2_000_000_000)
-                    await MainActor.run {
-                        persistence.evictExpiredCache()
+            ZStack {
+                RootTabView()
+                    .environmentObject(settings)
+                    .environmentObject(connectivity)
+                    .modelContainer(persistence.container)
+                    .preferredColorScheme(colorScheme)
+                    .onOpenURL { url in
+                        handleDeepLink(url)
                     }
+                    .task {
+                        try? await Task.sleep(nanoseconds: 2_000_000_000)
+                        await MainActor.run {
+                            persistence.evictExpiredCache()
+                        }
+                    }
+
+                // Premium X-style 3D launch overlay — icon→3D→UI continuity
+                if launchController.shouldShowAnimation && !launchController.finished {
+                    LaunchAnimationView {
+                        launchController.complete()
+                    }
+                    .transition(.opacity)
+                    .zIndex(10)
                 }
+            }
+            .onChange(of: scenePhase) { newPhase in
+                if newPhase == .background {
+                    launchController.markBackgrounded()
+                }
+            }
         }
     }
 
