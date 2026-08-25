@@ -45,6 +45,7 @@ struct HomeView: View {
             .onChange(of: viewModel.selectedFeed) { _, _ in
                 Task { await viewModel.loadInitial() }
             }
+            // Provide explicit debounced feed handling via viewModel.selectedFeed; HomeViewModel now coalesces via loadTask
             .navigationDestination(item: selectedStoryIDWrapper) { wrapper in
                 StoryDetailView(storyID: wrapper.value)
             }

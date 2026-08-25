@@ -6,9 +6,7 @@ import Combine
 final class HomeViewModel: ObservableObject {
     @Published var stories: [CachedStory] = []
     @Published var loadState: LoadState<[CachedStory]> = .idle
-    @Published var selectedFeed: FeedType = .top {
-        didSet { Task { await loadInitial() } }
-    }
+    @Published var selectedFeed: FeedType = .top
     @Published var isOfflineBannerVisible = false
     @Published var lastFetched: Date?
 
@@ -16,6 +14,7 @@ final class HomeViewModel: ObservableObject {
     private var currentPage = 0
     private let pageSize = 30
     private var isLoadingMore = false
+    private var loadTask: Task<Void, Never>?
 
     init(repository: StoryRepositoryProtocol? = nil) {
         if let repository {
@@ -26,22 +25,46 @@ final class HomeViewModel: ObservableObject {
     }
 
     func loadInitial() async {
-        guard loadState != .loading else { return }
-        loadState = .loading
-        let state = await repository.stories(for: selectedFeed, page: 0, pageSize: pageSize)
-        handleState(state)
-        currentPage = 0
+        loadTask?.cancel()
+        // Use detached task so we can cancel coalescing feed switches
+        await withCheckedContinuation { continuation in
+            loadTask = Task { [weak self] in
+                guard let self else { continuation.resume(); return }
+                // Prevent overlapping loading states from racing
+                if self.loadState == .loading {
+                    // Allow reload if feed switched — reset
+                    self.loadState = .loading
+                } else {
+                    self.loadState = .loading
+                }
+                let state = await self.repository.stories(for: self.selectedFeed, page: 0, pageSize: self.pageSize)
+                if Task.isCancelled { continuation.resume(); return }
+                self.handleState(state)
+                self.currentPage = 0
+                continuation.resume()
+            }
+        }
     }
 
     func refresh() async {
-        let prev = stories
-        if !prev.isEmpty { loadState = .refreshing(prev) }
-        else { loadState = .loading }
-        let state = await repository.refresh(feed: selectedFeed)
-        handleState(state)
-        if !prev.isEmpty && state.value != nil {
-            HapticsManager.selectionChanged()
-            SoundManager.playRefreshSound()
+        loadTask?.cancel()
+        await withCheckedContinuation { continuation in
+            loadTask = Task { [weak self] in
+                guard let self else { continuation.resume(); return }
+                let prev = self.stories
+                if !prev.isEmpty { self.loadState = .refreshing(prev) }
+                else { self.loadState = .loading }
+                let state = await self.repository.refresh(feed: self.selectedFeed)
+                if Task.isCancelled { continuation.resume(); return }
+                self.handleState(state)
+                if !prev.isEmpty && state.value != nil {
+                    HapticsManager.selectionChanged()
+                    SoundManager.playRefreshSound()
+                } else if case .failed(let cached, _) = state, (cached == nil || cached?.isEmpty == true) {
+                    // Keep skeleton a bit longer? Already show failed view — no extra delay
+                }
+                continuation.resume()
+            }
         }
     }
 

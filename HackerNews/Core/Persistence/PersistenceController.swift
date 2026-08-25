@@ -54,7 +54,12 @@ final class PersistenceController {
         }
         var map: [Int: CachedStory] = [:]
         for s in fetchAllCachedStories() { map[s.id] = s }
-        return meta.storyIDs.compactMap { map[$0] }
+        let ordered = meta.storyIDs.compactMap { map[$0] }
+        // If metadata exists but we lost stories (e.g. eviction race / partial insert), fall back to any cached for this feed
+        if ordered.isEmpty {
+            return fetchAllCachedStories().filter { $0.feedTypeRaw == raw }
+        }
+        return ordered
     }
 
     // MARK: - Saved

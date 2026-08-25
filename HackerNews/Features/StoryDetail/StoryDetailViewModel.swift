@@ -28,19 +28,40 @@ final class StoryDetailViewModel: ObservableObject {
     func load() async {
         isLoadingStory = true
         defer { isLoadingStory = false }
-        do {
-            let s = try await storyRepo.fetchStory(id: storyID)
-            story = s
-            isSaved = persistence.isSaved(storyID: s.id)
-            await loadComments()
-        } catch {
-            errorMessage = (error as? APIError)?.errorDescription ?? error.localizedDescription
-            if let cached = persistence.fetchCachedStory(id: storyID) {
-                story = cached
-                isSaved = persistence.isSaved(storyID: cached.id)
-                await loadComments()
+        // Retry with backoff for transient Firebase hiccups (prevents cold 'Failed to load')
+        var lastErr: Error?
+        var s: CachedStory?
+        for attempt in 0...2 {
+            do {
+                s = try await storyRepo.fetchStory(id: storyID)
+                break
+            } catch {
+                lastErr = error
+                if let api = error as? APIError, !api.isRetryable || attempt == 2 { break }
+                // Also map non-APIError retryable via APIError.map
+                let mapped = APIError.map(error)
+                if !mapped.isRetryable || attempt == 2 { break }
+                let backoff: UInt64 = attempt == 0 ? 500_000_000 : 900_000_000
+                try? await Task.sleep(nanoseconds: backoff)
+                if Task.isCancelled { break }
             }
         }
+        if let resolved = s {
+            story = resolved
+            isSaved = persistence.isSaved(storyID: resolved.id)
+            errorMessage = nil
+            await loadComments()
+            return
+        }
+        // Fallback to cached story if network ultimately failed
+        if let cached = persistence.fetchCachedStory(id: storyID) {
+            story = cached
+            isSaved = persistence.isSaved(storyID: cached.id)
+            errorMessage = nil
+            await loadComments()
+            return
+        }
+        errorMessage = (lastErr as? APIError)?.errorDescription ?? lastErr?.localizedDescription ?? "Unknown error"
     }
 
     func loadComments() async {

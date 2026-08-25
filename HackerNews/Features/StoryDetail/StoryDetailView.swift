@@ -77,9 +77,16 @@ struct StoryDetailView: View {
                     }
                     .padding(.top, 16)
                 } else {
-                    EmptyStateView(icon: "exclamationmark.triangle", title: "Failed to load", message: viewModel.errorMessage ?? "Unknown error", actionTitle: "Retry") {
+                    EmptyStateView(icon: "exclamationmark.triangle", title: "Failed to load", message: viewModel.errorMessage ?? "Couldn't reach Hacker News. Check your connection and try again.", actionTitle: "Retry") {
                         SoundManager.playTap()
                         Task { await viewModel.load() }
+                    }
+                    .task {
+                        // Auto-retry once after 1.2s if we landed on failed with no story (transient)
+                        if viewModel.story == nil && !viewModel.isLoadingStory {
+                            try? await Task.sleep(nanoseconds: 1_200_000_000)
+                            if viewModel.story == nil && viewModel.errorMessage != nil { await viewModel.load() }
+                        }
                     }
                 }
             }

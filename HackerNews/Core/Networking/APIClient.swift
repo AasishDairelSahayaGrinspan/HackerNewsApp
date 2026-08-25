@@ -56,18 +56,20 @@ final class APIClient: APIClientProtocol, @unchecked Sendable {
         logger.debug("→ GET \(url.absoluteString, privacy: .public)")
         #endif
 
-        // Retry once on transient failures for high-volume loads
+        // Retry with backoff on transient failures (Firebase can 5xx / time out intermittently)
         var lastError: Error?
-        for attempt in 0...1 {
+        for attempt in 0...2 {
             do {
                 let (data, response) = try await session.data(for: request)
                 guard let http = response as? HTTPURLResponse else {
                     throw APIError.invalidResponse
                 }
                 guard (200..<300).contains(http.statusCode) else {
-                    // Retry on 5xx
-                    if (500..<600).contains(http.statusCode), attempt == 0 {
-                        try? await Task.sleep(nanoseconds: 300_000_000)
+                    // Retry on 5xx / 429
+                    if ((500..<600).contains(http.statusCode) || http.statusCode == 429), attempt < 2 {
+                        let backoff: UInt64 = attempt == 0 ? 350_000_000 : 750_000_000
+                        try? await Task.sleep(nanoseconds: backoff)
+                        if Task.isCancelled { throw APIError.cancelled }
                         continue
                     }
                     logger.error("Server error \(http.statusCode) for \(url.absoluteString, privacy: .public)")
@@ -78,11 +80,18 @@ final class APIClient: APIClientProtocol, @unchecked Sendable {
                 #endif
                 return data
             } catch let err as APIError {
-                throw err
+                // Don't retry non-retryable; bubbled APIErrors are already final
+                if !err.isRetryable || attempt == 2 { throw err }
+                let backoff: UInt64 = attempt == 0 ? 400_000_000 : 800_000_000
+                try? await Task.sleep(nanoseconds: backoff)
+                if Task.isCancelled { throw APIError.cancelled }
+                continue
             } catch let urlErr as URLError where urlErr.code == .timedOut {
                 lastError = APIError.requestTimeout
-                if attempt == 0 {
-                    try? await Task.sleep(nanoseconds: 500_000_000)
+                if attempt < 2 {
+                    let backoff: UInt64 = attempt == 0 ? 550_000_000 : 1_100_000_000
+                    try? await Task.sleep(nanoseconds: backoff)
+                    if Task.isCancelled { throw APIError.cancelled }
                     continue
                 }
                 throw APIError.requestTimeout
@@ -93,8 +102,10 @@ final class APIClient: APIClientProtocol, @unchecked Sendable {
             } catch {
                 if Task.isCancelled { throw APIError.cancelled }
                 lastError = error
-                if attempt == 0, !(error is DecodingError) {
-                    try? await Task.sleep(nanoseconds: 300_000_000)
+                if attempt < 2, !(error is DecodingError) {
+                    let backoff: UInt64 = attempt == 0 ? 350_000_000 : 700_000_000
+                    try? await Task.sleep(nanoseconds: backoff)
+                    if Task.isCancelled { throw APIError.cancelled }
                     continue
                 }
                 throw APIError.map(error)
