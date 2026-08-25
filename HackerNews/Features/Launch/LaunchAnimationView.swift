@@ -47,8 +47,6 @@ struct LaunchAnimationView: View {
                 .position(x: proxy.size.width/2, y: proxy.size.height/2)
                 .scaleEffect(reveal > 0 ? 1 + reveal * 0.06 : 1)
                 .opacity(completed ? 0 : 1)
-                // Premium crisp compositing — render at native scale, no low-res raster
-                .drawingGroup(opaque: false, colorMode: .extendedLinear)
                 .compositingGroup()
                 
             }
@@ -82,8 +80,6 @@ struct LaunchAnimationView: View {
                 .shadow(color: .black.opacity(0.18), radius: 14, x: 0, y: 6)
                 
         }
-        .drawingGroup(opaque: false)
-        
     }
 
     private func runReduced() async {
@@ -145,8 +141,6 @@ struct LaunchAnimationView: View {
         .scaleEffect(1 + reveal * 8.0)
         .blur(radius: reveal > 0.62 ? Double((reveal - 0.62) * 9) : 0)
         .opacity(Double(1 - reveal * 0.68))
-        
-        .drawingGroup(opaque: false)
     }
 
     private func runCinematic() async {
@@ -238,35 +232,15 @@ private struct YPiece: View {
     enum Region { case leftArm, rightArm, stem }
     var region: Region
     var body: some View {
-        // Clip the full Y to region rect; keep white fill + subtle inner depth edge
-        HNLogoShape()
-            .fill(Color.white)
-            .frame(width: 164, height: 164)
-            .clipShape(YPieceMask(region: region))
-            .overlay {
-                // Very subtle 1pt inner edge for realism at split seam
-                YPieceMask(region: region).stroke(Color.black.opacity(0.07), lineWidth: 1)
+        Group {
+            switch region {
+            case .leftArm: HNLogoLeftArmShape().fill(Color.white)
+            case .rightArm: HNLogoRightArmShape().fill(Color.white)
+            case .stem: HNLogoStemShape().fill(Color.white)
             }
-    }
-}
-
-private struct YPieceMask: Shape {
-    var region: YPiece.Region
-    func path(in rect: CGRect) -> Path {
-        // rect is 164x164, same as Y frame. Mask rects proportional to Y geometry.
-        // Y junction at y=0.525*size, arm tops 0.278, stem bottom 0.772.
-        // Split boundaries: left arm rect covers left half above junction + diagonal; right similarly.
-        // Simpler: axis-aligned rects that each contain one arm/stem with overlap at junction (overlap hides seam when split=0)
-        switch region {
-        case .leftArm:
-            // Left half, top to junction
-            return Path(CGRect(x: rect.minX, y: rect.minY, width: rect.width * 0.58, height: rect.height * 0.56))
-        case .rightArm:
-            return Path(CGRect(x: rect.minX + rect.width * 0.42, y: rect.minY, width: rect.width * 0.58, height: rect.height * 0.56))
-        case .stem:
-            // Stem vertical rect
-            return Path(CGRect(x: rect.minX + rect.width * 0.34, y: rect.minY + rect.height * 0.48, width: rect.width * 0.32, height: rect.height * 0.52))
         }
+        .frame(width: 164, height: 164)
+        .shadow(color: .black.opacity(0.10), radius: 4, y: 2)
     }
 }
 
