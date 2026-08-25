@@ -115,7 +115,7 @@ struct LaunchAnimationView: View {
                         
                 }
             }
-            .opacity(extrude > 0 ? 1 : 0)
+            .opacity(extrude > 0 ? Double(extrude * (1 - split * 0.65)) : 0)
             .allowsHitTesting(false)
 
             // Split pieces overlay
@@ -232,15 +232,46 @@ private struct YPiece: View {
     enum Region { case leftArm, rightArm, stem }
     var region: Region
     var body: some View {
-        Group {
-            switch region {
-            case .leftArm: HNLogoLeftArmShape().fill(Color.white)
-            case .rightArm: HNLogoRightArmShape().fill(Color.white)
-            case .stem: HNLogoStemShape().fill(Color.white)
+        // True Y arms as capsules — each arm is the real Y capsule, not a rectangular clip
+        let size: CGFloat = 164
+        let w = size; let h = size
+        let cx = w/2; let junctionY = h * 0.522; let armTopY = h * 0.288
+        let stemBottomY = h * 0.760; let leftX = w * 0.318; let rightX = w * 0.682
+        let strokeW: CGFloat = w * 0.122
+        let leftDX = cx - leftX; let leftDY = junctionY - armTopY
+        let rightDX = cx - rightX; let rightDY = junctionY - armTopY
+        let stemLen = stemBottomY - junctionY
+
+        return ZStack {
+            if region == .leftArm {
+                let len = hypot(leftDX, leftDY)
+                let midX = (leftX + cx)/2 - w/2
+                let midY = (armTopY + junctionY)/2 - h/2
+                let angle = atan2(leftDY, leftDX) * 180 / .pi - 90
+                Capsule().fill(Color.white)
+                    .frame(width: strokeW, height: len)
+                    .rotationEffect(.degrees(angle))
+                    .offset(x: midX, y: midY)
+                    .shadow(color: .black.opacity(0.10), radius: 4, y: 2)
+            } else if region == .rightArm {
+                let len = hypot(rightDX, rightDY)
+                let midX = (rightX + cx)/2 - w/2
+                let midY = (armTopY + junctionY)/2 - h/2
+                let angle = atan2(rightDY, rightDX) * 180 / .pi - 90
+                Capsule().fill(Color.white)
+                    .frame(width: strokeW, height: len)
+                    .rotationEffect(.degrees(angle))
+                    .offset(x: midX, y: midY)
+                    .shadow(color: .black.opacity(0.10), radius: 4, y: 2)
+            } else {
+                let midY = (junctionY + stemBottomY)/2 - h/2
+                Capsule().fill(Color.white)
+                    .frame(width: strokeW, height: stemLen)
+                    .offset(y: midY)
+                    .shadow(color: .black.opacity(0.10), radius: 4, y: 2)
             }
         }
-        .frame(width: 164, height: 164)
-        .shadow(color: .black.opacity(0.10), radius: 4, y: 2)
+        .frame(width: size, height: size)
     }
 }
 
