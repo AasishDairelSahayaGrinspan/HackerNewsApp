@@ -24,14 +24,16 @@ final class LaunchController: ObservableObject {
         UserDefaults.standard.set(Date(), forKey: lastBackgroundKey)
     }
 
-    /// Called on scenePhase .active (foreground). Resets overlay so every open/close
-    /// reliably shows an animation — warm gets quick variant, cold gets full.
+    /// Called on scenePhase .active (foreground). Shows *every* real open (>1s background)
+    /// so user never sees “sometimes not coming”. Debounce 1.0s avoids flash on Control Center pull.
     func markForegrounded() {
+        // Don't re-trigger if animation is already on screen
+        if shouldShowAnimation && !finished { return }
         let last = UserDefaults.standard.object(forKey: lastBackgroundKey) as? Date
         let sinceBG = last.map { Date().timeIntervalSince($0) } ?? 9999
-        let warm = sinceBG < 300 // <5min counts as warm for duration choice, but we still show
-        // Very quick background→foreground (<8s) is typical “open/close” — show warm quick
-        // Even so, we *always* show something so user never sees inconsistent skip
+        // Debounce trivial background flickers (<1.0s) — not a real open
+        guard sinceBG > 1.0 else { return }
+        let warm = sinceBG < 300
         isWarm = warm
         trigger(showWarm: warm)
     }
