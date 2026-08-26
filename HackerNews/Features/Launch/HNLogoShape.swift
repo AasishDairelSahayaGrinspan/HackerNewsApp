@@ -11,15 +11,16 @@ struct HNLogoShape: Shape {
     }
 
     /// Shared geometry helper — draws the full Y (three capsules) into any path.
+    /// Option A: pixel-identical to AppIcon generate_icon.py (0.315/0.685, 0.285/0.525)
     static func addY(to path: inout Path, in rect: CGRect) {
         let w = rect.width
         let h = rect.height
         let cx = rect.midX
-        let junctionY = rect.minY + h * 0.522
-        let armTopY = rect.minY + h * 0.288
+        let junctionY = rect.minY + h * 0.525
+        let armTopY = rect.minY + h * 0.285
         let stemBottomY = rect.minY + h * 0.760
-        let leftX = rect.minX + w * 0.318
-        let rightX = rect.minX + w * 0.682
+        let leftX = rect.minX + w * 0.315
+        let rightX = rect.minX + w * 0.685
         let strokeW = w * 0.122
         capsule(from: CGPoint(x: leftX, y: armTopY), to: CGPoint(x: cx, y: junctionY), width: strokeW, to: &path)
         capsule(from: CGPoint(x: rightX, y: armTopY), to: CGPoint(x: cx, y: junctionY), width: strokeW, to: &path)
@@ -55,8 +56,8 @@ struct HNLogoLeftArmShape: Shape {
     func path(in rect: CGRect) -> Path {
         var p = Path()
         let w = rect.width; let h = rect.height
-        let cx = rect.midX; let junctionY = rect.minY + h * 0.522
-        let leftX = rect.minX + w * 0.318; let armTopY = rect.minY + h * 0.288
+        let cx = rect.midX; let junctionY = rect.minY + h * 0.525
+        let leftX = rect.minX + w * 0.315; let armTopY = rect.minY + h * 0.285
         HNLogoShape.capsule(from: CGPoint(x: leftX, y: armTopY), to: CGPoint(x: cx, y: junctionY), width: w * 0.122, to: &p)
         return p
     }
@@ -66,8 +67,8 @@ struct HNLogoRightArmShape: Shape {
     func path(in rect: CGRect) -> Path {
         var p = Path()
         let w = rect.width; let h = rect.height
-        let cx = rect.midX; let junctionY = rect.minY + h * 0.522
-        let rightX = rect.minX + w * 0.682; let armTopY = rect.minY + h * 0.288
+        let cx = rect.midX; let junctionY = rect.minY + h * 0.525
+        let rightX = rect.minX + w * 0.685; let armTopY = rect.minY + h * 0.285
         HNLogoShape.capsule(from: CGPoint(x: rightX, y: armTopY), to: CGPoint(x: cx, y: junctionY), width: w * 0.122, to: &p)
         return p
     }
@@ -77,7 +78,7 @@ struct HNLogoStemShape: Shape {
     func path(in rect: CGRect) -> Path {
         var p = Path()
         let w = rect.width; let h = rect.height
-        let cx = rect.midX; let junctionY = rect.minY + h * 0.522; let stemBottomY = rect.minY + h * 0.760
+        let cx = rect.midX; let junctionY = rect.minY + h * 0.525; let stemBottomY = rect.minY + h * 0.760
         HNLogoShape.capsule(from: CGPoint(x: cx, y: junctionY), to: CGPoint(x: cx, y: stemBottomY), width: w * 0.122, to: &p)
         return p
     }
