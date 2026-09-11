@@ -7,7 +7,6 @@ import UIKit
 final class LaunchController: ObservableObject {
     @Published var shouldShowAnimation: Bool = false
     @Published var finished: Bool = false
-    @Published var isWarm: Bool = false
 
     private let hasShownKey = "HNSplashShownOnce_v2"
 
@@ -18,15 +17,10 @@ final class LaunchController: ObservableObject {
             finished = true
         } else {
             // First launch ever — show the single Y zoom
-            isWarm = false
             finished = false
             shouldShowAnimation = true
         }
     }
-
-    /// No-op now — kept for HackerNewsApp calls but does not re-trigger
-    func markBackgrounded() {}
-    func markForegrounded() {}
 
     func complete() {
         // Persist that we've shown once forever

@@ -6,7 +6,7 @@ import Combine
 final class HomeViewModel: ObservableObject {
     @Published var stories: [CachedStory] = []
     @Published var loadState: LoadState<[CachedStory]> = .idle
-    @Published var selectedFeed: FeedType = .top
+    let selectedFeed: FeedType = .top
     @Published var isOfflineBannerVisible = false
     @Published var lastFetched: Date?
 
@@ -26,17 +26,11 @@ final class HomeViewModel: ObservableObject {
 
     func loadInitial() async {
         loadTask?.cancel()
-        // Use detached task so we can cancel coalescing feed switches
+        // Coalesce overlapping loads
         await withCheckedContinuation { continuation in
             loadTask = Task { [weak self] in
                 guard let self else { continuation.resume(); return }
-                // Prevent overlapping loading states from racing
-                if self.loadState == .loading {
-                    // Allow reload if feed switched — reset
-                    self.loadState = .loading
-                } else {
-                    self.loadState = .loading
-                }
+                self.loadState = .loading
                 let state = await self.repository.stories(for: self.selectedFeed, page: 0, pageSize: self.pageSize)
                 if Task.isCancelled { continuation.resume(); return }
                 self.handleState(state)

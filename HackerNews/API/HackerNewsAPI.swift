@@ -81,6 +81,7 @@ actor HackerNewsAPI: HackerNewsAPIProtocol {
                         return result
                     }
                 }
+            
                 for try await (id, item) in group {
                     if let item { results[id] = item }
                 }

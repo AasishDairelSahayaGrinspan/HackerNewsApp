@@ -97,94 +97,6 @@ std::vector<std::vector<int>> HNCppEngine::chunkIDs(const std::vector<int>& ids,
     return chunks;
 }
 
-// MARK: - Merge (offline-first)
-
-std::vector<HNItem> HNCppEngine::mergeStories(
-    const std::vector<HNItem>& cached,
-    const std::vector<HNItem>& network,
-    const std::unordered_set<int>& savedIDs
-) {
-    // Saved IDs are never evicted - merge preserves them
-    std::unordered_map<int, HNItem> map;
-    map.reserve(cached.size() + network.size());
-    for (const auto& c : cached) map[c.id] = c;
-    for (const auto& n : network) map[n.id] = n; // network wins for fresh data
-    // Ensure saved items are kept even if not in network
-    // (already in cached map, so kept)
-    std::vector<HNItem> result;
-    result.reserve(map.size());
-    for (auto& kv : map) result.push_back(kv.second);
-    // Sort by id desc for determinism (real app sorts by feed order via metadata)
-    std::sort(result.begin(), result.end(), [](const HNItem& a, const HNItem& b){ return a.id > b.id; });
-    return result;
-}
-
-// MARK: - Comment tree
-
-std::vector<CommentNode> HNCppEngine::buildCommentTree(
-    const std::vector<HNItem>& comments,
-    const std::vector<int>& rootKids
-) {
-    if (comments.empty() || rootKids.empty()) return {};
-    std::unordered_map<int, HNItem> map;
-    map.reserve(comments.size()*2);
-    for (auto& c : comments) map[c.id] = c;
-
-    std::function<CommentNode(int,int)> build = [&](int id, int depth) -> CommentNode {
-        auto it = map.find(id);
-        if (it == map.end()) return CommentNode{};
-        CommentNode node;
-        node.comment = it->second;
-        node.depth = depth;
-        for (int kid : it->second.kids) {
-            auto cit = map.find(kid);
-            if (cit != map.end()) {
-                CommentNode child = build(kid, depth+1);
-                if (child.comment.id != 0) node.children.push_back(std::move(child));
-            }
-        }
-        return node;
-    };
-
-    std::vector<CommentNode> roots;
-    roots.reserve(rootKids.size());
-    for (int rid : rootKids) {
-        auto it = map.find(rid);
-        if (it != map.end()) {
-            roots.push_back(build(rid, 0));
-        }
-    }
-    // Filter empty (failed lookups)
-    roots.erase(std::remove_if(roots.begin(), roots.end(), [](auto& n){ return n.comment.id==0; }), roots.end());
-    return roots;
-}
-
-std::vector<CommentNode> HNCppEngine::buildCommentTreeFlat(
-    const std::vector<HNItem>& comments
-) {
-    // Infer roots: comments whose id is not in any kids list
-    std::unordered_set<int> allKids;
-    allKids.reserve(comments.size()*2);
-    for (auto& c : comments) for (int k : c.kids) allKids.insert(k);
-    std::vector<int> roots;
-    for (auto& c : comments) if (allKids.find(c.id) == allKids.end()) roots.push_back(c.id);
-    return buildCommentTree(comments, roots);
-}
-
-void HNCppEngine::flattenTree(const std::vector<CommentNode>& nodes, std::vector<const HNItem*>& out, bool respectCollapse) {
-    for (auto& n : nodes) {
-        out.push_back(&n.comment);
-        if (respectCollapse && n.isCollapsed) continue;
-        flattenTree(n.children, out, respectCollapse);
-    }
-}
-
-size_t HNCppEngine::countNodes(const std::vector<CommentNode>& nodes) {
-    size_t c = 0;
-    for (auto& n : nodes) c += 1 + countNodes(n.children);
-    return c;
-}
-
 // MARK: - Text processing
 
 std::string HNCppEngine::stripHTML(const std::string& html) {
@@ -242,67 +154,17 @@ std::string HNCppEngine::timeAgoFromUnix(double unixTime) {
     return timeAgoFromInterval(ago);
 }
 
-// MARK: - Search
-
-std::vector<HNItem> HNCppEngine::search(
-    const std::vector<HNItem>& items,
-    const std::string& query
-) {
-    if (query.empty()) return {};
-    std::string lowerQ = query;
-    std::transform(lowerQ.begin(), lowerQ.end(), lowerQ.begin(), ::tolower);
-    auto contains = [&](const std::optional<std::string>& field) -> bool {
-        if (!field) return false;
-        std::string s = *field;
-        std::transform(s.begin(), s.end(), s.begin(), ::tolower);
-        return s.find(lowerQ) != std::string::npos;
-    };
-    auto domainContains = [&](const HNItem& item) -> bool {
-        std::string d = item.domain();
-        std::transform(d.begin(), d.end(), d.begin(), ::tolower);
-        return d.find(lowerQ) != std::string::npos;
-    };
-    std::vector<HNItem> out;
-    for (auto& it : items) {
-        if (contains(it.title) || contains(it.by) || contains(it.text) || domainContains(it)) {
-            out.push_back(it);
-        } else {
-            // also check id
-            if (std::to_string(it.id).find(lowerQ) != std::string::npos) out.push_back(it);
-        }
-    }
-    return out;
-}
-
-// MARK: - Eviction
-
-HNCppEngine::EvictionResult HNCppEngine::evictionPlan(
-    const std::vector<HNItem>& allStories,
-    const std::unordered_map<int, double>& lastFetchedMap,
-    const std::unordered_set<int>& savedIDs,
-    const std::unordered_set<int>& metadataIDs,
-    double maxAgeSeconds,
-    double cutoffAge
-) {
-    EvictionResult res;
-    auto now = std::chrono::duration_cast<std::chrono::seconds>(
-        std::chrono::system_clock::now().time_since_epoch()).count();
-    for (auto& s : allStories) {
-        if (savedIDs.count(s.id)) { res.keepIDs.push_back(s.id); continue; }
-        if (metadataIDs.count(s.id)) { res.keepIDs.push_back(s.id); continue; }
-        auto it = lastFetchedMap.find(s.id);
-        double age = (it != lastFetchedMap.end()) ? (static_cast<double>(now) - it->second) : 1e9;
-        if (age < cutoffAge && age < maxAgeSeconds) res.keepIDs.push_back(s.id);
-        else res.evictIDs.push_back(s.id);
-    }
-    return res;
-}
-
 // MARK: - URL
 
 std::string HNCppEngine::extractDomain(const std::string& url) {
     HNItem tmp; tmp.url = url;
-    return tmp.domain();
+    std::string d = tmp.domain();
+    if (d.empty()) return "";
+    // Reject invalid hosts: whitespace means not a URL (e.g. "not a url").
+    if (d.find_first_of(" \t\n\r") != std::string::npos) return "";
+    // Require dot so bare tokens without TLD are treated as invalid.
+    if (d.find('.') == std::string::npos) return "";
+    return d;
 }
 
 std::string HNCppEngine::storyURL(int storyID) {

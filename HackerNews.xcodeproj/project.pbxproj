@@ -89,7 +89,7 @@
 		69967E094DD69BDAF3DBAD4E /* APIError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIError.swift; sourceTree = "<group>"; };
 		6B2D11C69D3E089185840866 /* Endpoint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Endpoint.swift; sourceTree = "<group>"; };
 		6DA7257F9A2FF5B50BB254FD /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
-		6F906F12DF421D1E29577C4E /* HackerNews.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = HackerNews.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		6F906F12DF421D1E29577C4E /* HackerNews.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = HackerNews.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		72CC8BE012BAF6DDF0B4915D /* CppEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CppEngine.swift; sourceTree = "<group>"; };
 		7911D183A6BAC3BF13AD2872 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		80AE70EBAA36D46405AC8E94 /* SavedViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedViewModel.swift; sourceTree = "<group>"; };
@@ -108,7 +108,7 @@
 		C199F6F35E59438E75B105B1 /* PersistenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceTests.swift; sourceTree = "<group>"; };
 		CB5D50A469469B7CCF6ECD9F /* StoryRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoryRepositoryTests.swift; sourceTree = "<group>"; };
 		D0F798824521C67C6C22AA88 /* PersistenceController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceController.swift; sourceTree = "<group>"; };
-		D22D45891AA0ACD14C043D05 /* HackerNewsTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = HackerNewsTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		D22D45891AA0ACD14C043D05 /* HackerNewsTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = HackerNewsTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D76F3FBD7E69E71C386D3003 /* HapticsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HapticsManager.swift; sourceTree = "<group>"; };
 		D9423FBD24C162F0E291B190 /* CachePolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CachePolicy.swift; sourceTree = "<group>"; };
 		E200D320B1F01E579579FEEE /* StoryDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoryDetailView.swift; sourceTree = "<group>"; };
@@ -504,7 +504,6 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					1EA42FC82146D03BE171BC36 = {
-						DevelopmentTeam = L8HTG27444;
 						ProvisioningStyle = Automatic;
 					};
 					34B7AB0E02916C071531C8F5 = {
@@ -620,6 +619,7 @@
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGNING_ALLOWED = YES;
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 86VC7S7G9V;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -643,7 +643,7 @@
 				CODE_SIGNING_ALLOWED = YES;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = L8HTG27444;
+				DEVELOPMENT_TEAM = 86VC7S7G9V;
 				ENABLE_PREVIEWS = YES;
 				HEADER_SEARCH_PATHS = "$(SRCROOT)/HackerNews/Core/CppCore/include";
 				INFOPLIST_FILE = HackerNews/Info.plist;
@@ -734,6 +734,7 @@
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGNING_ALLOWED = YES;
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 86VC7S7G9V;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -816,7 +817,7 @@
 				CODE_SIGNING_ALLOWED = YES;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = L8HTG27444;
+				DEVELOPMENT_TEAM = 86VC7S7G9V;
 				ENABLE_PREVIEWS = YES;
 				HEADER_SEARCH_PATHS = "$(SRCROOT)/HackerNews/Core/CppCore/include";
 				INFOPLIST_FILE = HackerNews/Info.plist;

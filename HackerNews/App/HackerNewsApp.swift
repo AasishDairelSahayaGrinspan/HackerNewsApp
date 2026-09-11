@@ -7,7 +7,6 @@ struct HackerNewsApp: App {
     @StateObject private var connectivity: ConnectivityMonitor
     @StateObject private var launchController = LaunchController()
     let persistence: PersistenceController
-    @Environment(\.scenePhase) private var scenePhase
 
     @MainActor
     init() {
@@ -46,14 +45,6 @@ struct HackerNewsApp: App {
                     }
                     .transition(.opacity)
                     .zIndex(10)
-                }
-            }
-            .onChange(of: scenePhase) { newPhase in
-                if newPhase == .background {
-                    launchController.markBackgrounded()
-                } else if newPhase == .active {
-                    // Every real open (>1s background) shows the Y zoom — no “sometimes” skip
-                    launchController.markForegrounded()
                 }
             }
         }
