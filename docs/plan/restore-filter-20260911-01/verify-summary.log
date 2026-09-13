@@ -1,0 +1,18 @@
+VERIFY SUMMARY restore-filter-20260911-01 wave 2
+Date: 2026-09-11
+
+1. Locked build:
+Command: xcodebuild test -scheme HackerNews -destination 'platform=iOS Simulator,name=iPhone 17'
+Log: docs/plan/restore-filter-20260911-01/xcodebuild-test.log (269 lines, 32K, full tee output)
+Result: ** TEST SUCCEEDED **, Executed 41 tests with 0 failures (All suites: APIClient 6, Comment 6, HNItemDTO 9, Persistence 9, StoryRepository 7, ViewModel 4)
+
+2. Grep evidence:
+Log: docs/plan/restore-filter-20260911-01/grep-evidence.log
+Result: FeedType.allCases in HomeView pill picker + toolbar Menu, @Published var selectedFeed = .top in HomeViewModel, selectFeed present, no let selectedFeed / TODO / FIXME refs.
+
+3. Manual code check:
+- Filter visible: HomeView.feedPicker horizontal ScrollView capsule pills + toolbar Menu (line.3.horizontal.decrease) both iterate FeedType.allCases.
+- Defaults Top: HomeViewModel @Published var selectedFeed: FeedType = .top.
+- Switching reloads: selectFeed guards same-feed no-op, cancels loadTask, sets selectedFeed, resets currentPage=0, Task loadInitial; loadInitial/refresh/loadMoreIfNeeded all use selectedFeed; pill tap and Menu both call viewModel.selectFeed with haptic/sound.
+
+No product code changes in wave 2 (verification only). Break-fix: none needed.

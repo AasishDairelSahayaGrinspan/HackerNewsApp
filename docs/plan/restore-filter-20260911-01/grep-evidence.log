@@ -1,0 +1,34 @@
+GREP EVIDENCE restore-filter-20260911-01 wave 2
+Date: 2026-09-11
+Scope: HackerNews/Features/Home/
+
+--- Home files FeedType.allCases / selectedFeed / feedPicker / selectFeed ---
+HackerNews/Features/Home/HomeView.swift:15:                feedPicker
+HackerNews/Features/Home/HomeView.swift:23:                        ForEach(FeedType.allCases) { feed in
+HackerNews/Features/Home/HomeView.swift:27:                                viewModel.selectFeed(feed)
+HackerNews/Features/Home/HomeView.swift:30:                                if feed == viewModel.selectedFeed {
+HackerNews/Features/Home/HomeView.swift:120:    private var feedPicker: some View {
+HackerNews/Features/Home/HomeView.swift:123:                ForEach(FeedType.allCases) { feed in
+HackerNews/Features/Home/HomeView.swift:127:                        viewModel.selectFeed(feed)
+HackerNews/Features/Home/HomeView.swift:133:                            .background(viewModel.selectedFeed == feed ? Color.orange : Color(.secondarySystemBackground))
+HackerNews/Features/Home/HomeView.swift:134:                            .foregroundStyle(viewModel.selectedFeed == feed ? .white : .primary)
+HackerNews/Features/Home/HomeViewModel.swift:9:    @Published var selectedFeed: FeedType = .top
+HackerNews/Features/Home/HomeViewModel.swift:27:    func selectFeed(_ feed: FeedType) {
+HackerNews/Features/Home/HomeViewModel.swift:28:        guard feed != selectedFeed else { return }
+HackerNews/Features/Home/HomeViewModel.swift:30:        selectedFeed = feed
+HackerNews/Features/Home/HomeViewModel.swift:42:                let state = await self.repository.stories(for: self.selectedFeed, page: 0, pageSize: self.pageSize)
+HackerNews/Features/Home/HomeViewModel.swift:59:                let state = await self.repository.refresh(feed: self.selectedFeed)
+HackerNews/Features/Home/HomeViewModel.swift:80:        let state = await repository.stories(for: selectedFeed, page: currentPage, pageSize: pageSize)
+
+--- Dangling pinning refs check (expect none) ---
+rg -n "let selectedFeed|pinned|TODO|FIXME" HackerNews/ => no dangling refs (exit 1, no matches)
+
+--- FeedType intact (6 cases) ---
+HackerNews/Domain/Models/FeedType.swift:4:    case top = "Top"
+HackerNews/Domain/Models/FeedType.swift:5:    case new = "New"
+HackerNews/Domain/Models/FeedType.swift:6:    case best = "Best"
+HackerNews/Domain/Models/FeedType.swift:7:    case ask = "Ask"
+HackerNews/Domain/Models/FeedType.swift:8:    case show = "Show"
+HackerNews/Domain/Models/FeedType.swift:9:    case jobs = "Jobs"
+
+PASS: mutable @Published var selectedFeed present, FeedType.allCases in pill picker + toolbar Menu, zero dangling refs.

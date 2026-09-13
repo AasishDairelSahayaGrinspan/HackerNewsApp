@@ -12,10 +12,32 @@ struct HomeView: View {
                 OfflineBanner(isOffline: !connectivity.isOnline, lastFetched: viewModel.lastFetched)
                     .animation(reduceMotion ? nil : .easeInOut, value: connectivity.isOnline)
 
+                feedPicker
                 content
             }
             .navigationTitle("Hacker News")
             .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    Menu {
+                        ForEach(FeedType.allCases) { feed in
+                            Button {
+                                SoundManager.playNavigationTap()
+                                HapticsManager.lightImpact()
+                                viewModel.selectFeed(feed)
+                            } label: {
+                                Label(feed.rawValue, systemImage: feed.icon)
+                                if feed == viewModel.selectedFeed {
+                                    Image(systemName: "checkmark")
+                                }
+                            }
+                        }
+                    } label: {
+                        Image(systemName: "line.3.horizontal.decrease")
+                    }
+                    .accessibilityLabel("Select feed")
+                }
+            }
             .refreshable {
                 await viewModel.refresh()
             }
@@ -92,6 +114,31 @@ struct HomeView: View {
                 .listStyle(.plain)
                 .animation(reduceMotion ? nil : .default, value: viewModel.stories.map(\.id))
             }
+        }
+    }
+
+    private var feedPicker: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(FeedType.allCases) { feed in
+                    Button {
+                        SoundManager.playNavigationTap()
+                        HapticsManager.lightImpact()
+                        viewModel.selectFeed(feed)
+                    } label: {
+                        Label(feed.rawValue, systemImage: feed.icon)
+                            .font(.subheadline.weight(.semibold))
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(viewModel.selectedFeed == feed ? Color.orange : Color(.secondarySystemBackground))
+                            .foregroundStyle(viewModel.selectedFeed == feed ? .white : .primary)
+                            .clipShape(Capsule())
+                    }
+                    .accessibilityLabel("\(feed.rawValue) feed")
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
         }
     }
 

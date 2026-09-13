@@ -1,0 +1,74 @@
+plan_id: restore-filter-20260911-01
+status: pending
+tldr: |
+  Re-add Home feed pill picker plus toolbar Menu backed by mutable selectedFeed defaulting to .top, reusing intact FeedType and repository plumbing, then verify with locked xcodebuild test.
+created_at: "2026-09-11T00:00:00Z"
+created_by: planner
+revision: 1
+replan_count: 0
+planner_revision_used: false
+baseline:
+  objective: Restore Home/News top filter UI removed in cleanup, allowing feed switching again
+  acceptance_criteria:
+    - Home/News tab shows top filter control again and switches feeds correctly
+    - Default remains Top feed, selection reloads list with correct content
+    - xcodebuild test -scheme HackerNews passes with no dangling refs
+  captured_at: "2026-09-11T00:00:00Z"
+decisions:
+  - "Restore scope is exactly HomeView.swift pill picker plus toolbar Menu for all 6 FeedType cases plus HomeViewModel mutable selectedFeed default .top, as removed in cleanup-20260911-01 (feedPicker 55-79, Menu, pinned let selectedFeed)."
+  - "Reuse intact backend: FeedType enum (top/new/best/ask/show/jobs) and StoryRepository stories(for:page:pageSize)/refresh(feed:) multi-feed plumbing are kept; no API, persistence, C++ bridge, or endpoint changes."
+  - "Selection behavior: @Published var selectedFeed drives loadInitial/refresh/loadMoreIfNeeded; picker tap and Menu selection set feed, reset page to 0, and reload; default .top on first appear."
+  - "Preserve current Home chrome: NavigationStack, OfflineBanner, skeleton/empty/failed states, refreshable/task, navigationDestination, reduceMotion, save toggles, pagination threshold, and Launch splash overlay untouched."
+  - "Verification locked: xcodebuild test -scheme HackerNews plus grep for FeedType.allCases/selectedFeed/feedPicker/Menu in Home files to prove restore and no dangling refs."
+assumptions:
+  - "Assumed News tab is HomeView (Hacker News title, large display mode); no separate News view to restore."
+  - "Assumed no external selectedFeed writers were introduced after cleanup; restore makes HomeViewModel the single owner."
+  - "Assumed scheme HackerNews builds with xcodebuild test -scheme HackerNews on host with no signing or device required."
+tasks:
+  - id: restore-home-feed-filter
+    title: Restore Home feed picker, Menu, and mutable selectedFeed
+    description: |
+      Re-add selection UI plus mutable state using intact plumbing. reuse: existing codebase helper (FeedType.allCases + StoryRepository multi-feed methods + SwiftUI Menu/ScrollView) - no new deps, no stdlib-only fix, no new backend code.
+      Step 1 ViewModel (HomeViewModel.swift): change `let selectedFeed: FeedType = .top` to `@Published var selectedFeed: FeedType = .top`; add `func selectFeed(_ feed: FeedType)` that guards same-feed no-op, sets selectedFeed, cancels loadTask, resets currentPage to 0, and reloads via existing loadInitial/refresh path; ensure loadInitial/refresh/loadMoreIfNeeded all use self.selectedFeed.
+      Step 2 View (HomeView.swift): re-add horizontal pill picker above content (ScrollView horizontal, ForEach FeedType.allCases, capsule pill with feed icon + rawValue, selected style vs unselected, tap calls selectFeed with haptic/sound consistent with existing row taps); re-add toolbar Menu (line.3.horizontal.decrease icon) listing FeedType.allCases with icon, rawValue, checkmark on selectedFeed, each calling selectFeed; add .onChange(of: viewModel.selectedFeed) that Tasks reload if needed as safety net (picker/Menu already call selectFeed, avoid double load).
+      Keep NavigationStack, OfflineBanner, content List/skeleton/empty/failed, refreshable, task loadInitial, navigationDestination, reduceMotion animations, StoryRowView save/pagination logic unchanged. Default first load is .top.
+    wave: 1
+    agent: gem-implementer
+    status: pending
+    retries_used: 0
+    acceptance_criteria:
+      - HomeViewModel exposes @Published var selectedFeed default .top with selectFeed resetting page and reloading via existing repository feed methods
+      - HomeView renders pill picker for all 6 feeds and toolbar Menu bound to viewModel.selectedFeed; tap/menu selection updates feed and reloads list with correct endpoint content
+      - Default launch shows Top feed; no picker/Menu removal remnants; OfflineBanner, refresh, pagination, save toggles still work
+    handoff:
+      constraints:
+        - "Ownership: HackerNews/Features/Home/HomeView.swift, HackerNews/Features/Home/HomeViewModel.swift only"
+        - "Do NOT modify FeedType.swift, StoryRepository, HackerNewsAPI, PersistenceController, CppCore files, LaunchController.swift, HackerNewsApp.swift, Saved/Search/Settings views"
+        - "Do NOT add new dependencies, new files, or speculative feed features beyond picker + Menu + selectFeed"
+      relevant_context:
+        - "Native iOS HN client SwiftUI+SwiftData+C++20 via ObjC++ bridge"
+        - "Current HomeView.swift 104 lines has no picker/Menu; HomeViewModel.swift:9 has let selectedFeed pinned to .top"
+        - "FeedType cases top/new/best/ask/show/jobs with endpointPath/icon/description intact; repository stories(for:page:pageSize) and refresh(feed:) intact"
+        - "Prior cleanup evidence docs/plan/cleanup-20260911-01/plan.yaml and home-feed-ui-and-launch-cleanup.evidence.md"
+  - id: build-test-verify
+    title: Verify locked build, feed switching, and zero dangling refs
+    description: |
+      Verification only, no product code changes except trivial break-fix within wave-1 owned files. reuse: platform feature (xcodebuild + rg).
+      Run locked command xcodebuild test -scheme HackerNews and record output. Grep Home files for FeedType.allCases, selectedFeed, feedPicker/picker, toolbar Menu to prove restore; grep repo-wide for TODO/FIXME or stale .top-only comments left by restore. Manual code check: default .top, picker + Menu present, selection reloads. If build fails from restore, fix minimally within HomeView/HomeViewModel and re-run. Collect evidence log under docs/plan/restore-filter-20260911-01/.
+    wave: 2
+    depends_on: [restore-home-feed-filter]
+    agent: gem-implementer
+    status: pending
+    retries_used: 0
+    acceptance_criteria:
+      - xcodebuild test -scheme HackerNews passes with logged output
+      - Grep evidence shows FeedType.allCases and mutable selectedFeed present in Home files and no dangling refs to removed pinning
+      - Manual code check confirms Home/News tab shows filter control, defaults to Top, and switching feeds reloads list
+    handoff:
+      constraints:
+        - "Ownership: verification logs under docs/plan/restore-filter-20260911-01/ only; break-fix edits limited to wave-1 owned Home files"
+        - "Do NOT weaken acceptance criteria to pass; report failure with evidence if unfixable"
+      relevant_context:
+        - "Baseline acceptance: filter control visible, feed switching correct, default Top, xcodebuild test passes"
+        - "Risk signals: breaking_change, shared_state, data_flow_change"
+        - "Locked verification: xcodebuild test -scheme HackerNews"

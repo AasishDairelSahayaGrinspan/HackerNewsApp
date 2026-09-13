@@ -6,7 +6,7 @@ import Combine
 final class HomeViewModel: ObservableObject {
     @Published var stories: [CachedStory] = []
     @Published var loadState: LoadState<[CachedStory]> = .idle
-    let selectedFeed: FeedType = .top
+    @Published var selectedFeed: FeedType = .top
     @Published var isOfflineBannerVisible = false
     @Published var lastFetched: Date?
 
@@ -22,6 +22,14 @@ final class HomeViewModel: ObservableObject {
         } else {
             self.repository = StoryRepository()
         }
+    }
+
+    func selectFeed(_ feed: FeedType) {
+        guard feed != selectedFeed else { return }
+        loadTask?.cancel()
+        selectedFeed = feed
+        currentPage = 0
+        Task { await loadInitial() }
     }
 
     func loadInitial() async {

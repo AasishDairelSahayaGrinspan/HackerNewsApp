@@ -1,0 +1,69 @@
+plan_id: commit-push-20260911-01
+status: pending
+tldr: |
+  Commit verified cleanup working tree (8 modified files) with repo-style message, then push to origin/main.
+created_at: "2026-09-11T00:00:00Z"
+created_by: planner
+revision: 1
+replan_count: 0
+planner_revision_used: false
+baseline:
+  objective: Commit working changes from cleanup and push to GitHub
+  acceptance_criteria:
+    - Only intended cleanup files staged, no secrets committed
+    - Commit created with concise message matching repo style
+    - Push succeeds to tracked remote branch
+  captured_at: "2026-09-11T00:00:00Z"
+decisions:
+  - Scope is the 8 unstaged modified files observed 2026-09-11 on main: HackerNews.xcodeproj/project.pbxproj, HackerNews/API/HackerNewsAPI.swift, HackerNews/App/HackerNewsApp.swift, HackerNews/Core/CppCore/include/HNCppEngine.hpp, HackerNews/Core/CppCore/src/HNCppEngine.cpp, HackerNews/Features/Home/HomeView.swift, HackerNews/Features/Home/HomeViewModel.swift, HackerNews/Features/Launch/LaunchController.swift; docs/ untracked output is excluded from this commit.
+  - Target is tracked upstream origin/main from branch main; no new branch, no force push, no rebase.
+  - Commit message must match observed repo style (lowercase type prefix, e.g. chore:/fix:, short imperative, under 72 chars); worker selects exact wording after git diff review.
+  - Secrets check is mandatory pre-commit gate: git status, git diff --cached --name-only, and grep for keys/tokens/env/pem/mobileprovision before commit.
+assumptions:
+  - Prior context claimed 1 file modified from cleanup-20260911-01, but live tree shows 8 files modified; assumed all 8 are intended cleanup scope to be verified by worker, not silently dropped.
+  - Explicit user request to commit and push authorizes git write (commit + push only); no other file edits authorized.
+  - Remote origin/main is reachable and worker has push permission; no merge conflicts requiring resolution beyond fast-forward.
+tasks:
+  - id: verify-commit
+    title: Verify scope and create commit
+    description: |
+      Inspect git status/diff, verify only the 8 intended cleanup files are staged, confirm no secrets or docs/plan output staged, then create single commit with repo-style message. reuse: platform feature (git CLI status/diff/add/commit only, no new code).
+    wave: 1
+    agent: gem-implementer
+    status: pending
+    retries_used: 0
+    acceptance_criteria:
+      - git status shows only the 8 listed files modified/staged; docs/ and any secret files unstaged/uncommitted
+      - git diff --cached --name-only matches intended set and contains no key/token/secret material
+      - git log -1 shows new commit on main with concise type-prefixed message matching repo style
+    handoff:
+      constraints:
+        - Do not edit source content; git inspection and commit only
+        - Do not stage or commit docs/, .env, keys, pem, mobileprovision, or secrets
+        - Do not amend prior commits, rebase, or force-push; single new commit only
+        - Commit message lowercase type prefix, imperative, under 72 chars
+      relevant_context:
+        - Branch main tracks origin/main; 8 modified files, none staged at plan time
+        - Repo log style examples: chore: add MIT license; fix: Option A Y pixel-identical to icon + splash only first ever
+        - Prior plan cleanup-20260911-01 reported 3/3 complete, 41 tests passed
+  - id: push-remote
+    title: Push commit to origin/main
+    description: |
+      Push the new commit from main to origin/main and verify remote tracking. reuse: platform feature (git push/ls-remote only, no new code).
+    wave: 2
+    depends_on: [verify-commit]
+    agent: gem-implementer
+    status: pending
+    retries_used: 0
+    acceptance_criteria:
+      - git push origin main succeeds with no force flags
+      - git rev-parse main and origin/main agree or origin/main is ahead by exactly the new commit
+      - git status -sb shows no ahead-of-remote for the pushed commit
+    handoff:
+      constraints:
+        - Push only to origin/main; no new branches, no force push, no tags
+        - If push rejected (non-fast-forward/auth failure), stop and report evidence; do not pull/merge/rebase without replan
+        - Preserve irreversible/shared_state risk: push is the only remote-mutating step
+      relevant_context:
+        - Tracked upstream at plan time is origin/main
+        - Depends on verify-commit commit existing locally

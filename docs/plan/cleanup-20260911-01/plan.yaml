@@ -1,0 +1,114 @@
+plan_id: cleanup-20260911-01
+status: pending
+tldr: |
+  Conditionally remove proven-unreferenced C++ engine functions and dead Launch hooks with per-symbol grep evidence, strip Home/News picker plus Menu and pin to Top feed after writer pre-check, then verify with locked xcodebuild test -scheme HackerNews and zero-ref grep.
+created_at: "2026-09-11T00:00:00Z"
+created_by: planner
+revision: 2
+replan_count: 1
+planner_revision_used: true
+baseline:
+  objective: Remove unused C++ engine code and remove feed selector UI from Home/News tab
+  acceptance_criteria:
+    - Unused C++ search/eviction/merge/build removal
+    - Home Top-only no picker/Menu
+    - Tests pass
+  captured_at: "2026-09-11T00:00:00Z"
+decisions:
+  - "Conditional-delete rule (resolves unconditional vs conditional contradiction): for each candidate symbol executor must log grep hits BEFORE deleting; delete only on zero live references outside its own definition block; if any live Swift/ObjC++/C++/test reference found, KEEP symbol and record keep-path with evidence in evidence log. No unconditional deletions."
+  - "Unused C++ scope is exactly: HNCppEngine::search, HNCppEngine::evictionPlan, HNCppEngine::mergeStories, HNCppEngine::buildCommentTree, plus tree-only helpers buildCommentTreeFlat, flattenTree, countNodes only if grep proves zero references outside their own tree block. All deletions conditional per above rule."
+  - "EvictionResult ownership locked: KEEP EvictionResult struct by default; delete only if grep proves it is referenced exclusively by evictionPlan declaration/definition and by nothing else (Swift/bridge/tests included). Otherwise keep and log."
+  - "Keep all bridged C++ surface by default: feedEndpoint, feedRawValue, feedFromString, feedIcon, feedDescription, allFeeds, deduplicateIDs, chunkIDs, stripHTML, timeAgoFromUnix, timeAgoFromInterval, extractDomain, storyURL, itemEndpoint, CachePolicyCpp. Do not remove htmlToPlainText; default keep."
+  - "selectedFeed/FeedType.allCases external-writer pre-check required before UI deletion: executor must grep selectedFeed writes and FeedType.allCases uses outside HomeView.swift/HomeViewModel.swift (whole repo incl. RootTabView, deep links, widgets, tests). If external writers exist, KEEP public mutable selection API and only remove picker/Menu UI, hardcoding Home path to .top; log writers as evidence. If zero external writers, pin selectedFeed to constant .top."
+  - "Keep Swift FeedType enum and all repository/API/persistence feed plumbing intact; only HomeView UI selection and HomeViewModel mutability change per pre-check outcome."
+  - "Keep LaunchController once-ever splash state (shouldShowAnimation, finished, isWarm, complete, hasShownKey) and LaunchAnimationView overlay; delete only markBackgrounded/markForegrounded no-ops and the scenePhase onChange block in HackerNewsApp that calls them, conditional on grep proving no other callers."
+  - "Verification locked: xcodebuild test -scheme HackerNews plus repo-wide grep for removed symbols plus manual Top-feed code check (HomeView has no picker/Menu, ViewModel loads .top). No new tests or behavior changes."
+assumptions:
+  - "Assumed candidate-unused = C++ search/evictionPlan/mergeStories/buildCommentTree not called from Swift plus LaunchController markBackgrounded/markForegrounded no-ops; each must still be proven with grep evidence at execution time."
+  - "Assumed News tab = HomeView feed pill picker (HomeView.swift:55-79) + toolbar Menu (HomeView.swift:22-38), default to Top feed."
+  - "StoryRepository.search stays Swift-local; SearchView/SavedView filtering untouched."
+  - "Scheme HackerNews builds with xcodebuild test -scheme HackerNews on the host; no signing or device required for tests."
+replan:
+  reason: "Revision 2 to address critic needs_input: conditional deletes with evidence log, zero-ref proof per symbol, selectedFeed writer pre-check, EvictionResult ownership, locked verification command."
+  changed_tasks: [cpp-dead-code-removal, home-feed-ui-and-launch-cleanup, build-test-verify]
+  added_tasks: []
+  removed_tasks: []
+  preserved_acceptance_criteria: ["Unused C++ search/eviction/merge/build removal", "Home Top-only no picker/Menu", "Tests pass"]
+  new_risks: ["unconditional delete could break build if live ref missed"]
+  progress_signal: "No execution started; revision 1 plan only."
+  revised_tasks: [cpp-dead-code-removal, home-feed-ui-and-launch-cleanup, build-test-verify]
+  invalidated_tasks: []
+  invalidated_assumptions: ["unconditional deletion safe without per-symbol grep proof"]
+tasks:
+  - id: cpp-dead-code-removal
+    title: Conditionally remove proven-unreferenced C++ engine functions
+    description: |
+      YAGNI conditional deletion. reuse: YAGNI (drop only proven-uncalled code) - no stdlib/platform/dependency replacement.
+      For EACH candidate symbol (HNCppEngine::search, evictionPlan, mergeStories, buildCommentTree, buildCommentTreeFlat, flattenTree, countNodes): run repo-wide grep across HackerNews/, HackerNewsTests/, Bridge (.h/.mm), CppEngine.swift BEFORE deleting and append hits to evidence log. Delete declaration/definition only on zero live references outside its own definition block; if any live ref found, KEEP and log keep-path with file:line evidence.
+      Remove only proven-dead declarations from HackerNews/Core/CppCore/include/HNCppEngine.hpp and definitions from HackerNews/Core/CppCore/src/HNCppEngine.cpp. EvictionResult: KEEP unless grep proves exclusive to evictionPlan; otherwise keep and log. Leave HNTypes.hpp untouched by default. Do not touch HNCppBridge.h/.mm or CppEngine.swift except to delete forwarding wrappers only if proven to wrap a removed function.
+    wave: 1
+    agent: gem-code-simplifier
+    status: pending
+    retries_used: 0
+    acceptance_criteria:
+      - Evidence log lists per-symbol grep command plus hits (or zero hits) for search, evictionPlan, EvictionResult, mergeStories, buildCommentTree, buildCommentTreeFlat, flattenTree, countNodes
+      - HNCppEngine.hpp/.cpp no longer declare/define a symbol ONLY if its evidence shows zero live refs; every kept symbol has logged keep-path with file:line ref
+      - EvictionResult removed only with exclusivity proof, else kept and logged
+    handoff:
+      constraints:
+        - "Ownership: HackerNews/Core/CppCore/include/HNCppEngine.hpp, HackerNews/Core/CppCore/src/HNCppEngine.cpp only, plus evidence log under docs/plan/cleanup-20260911-01/"
+        - "Do NOT modify HNCppBridge.h/.mm, CppEngine.swift, HNTypes.hpp, CachePolicyCpp, FeedType.swift, HomeView*, HackerNewsApp.swift, LaunchController.swift"
+        - "Do NOT broaden deletion to allFeeds, feedRawValue, htmlToPlainText, timeAgoFromInterval; default keep without zero-ref proof"
+      relevant_context:
+        - "Bridge HNCppBridge.mm calls only feedEndpoint/feedFromString/feedIcon/feedDescription, deduplicateIDs, chunkIDs, stripHTML, timeAgoFromUnix, extractDomain, storyURL, itemEndpoint"
+        - "CppEngine.swift exposes only endpoint/isFresh/freshness/deduplicate/chunk/stripHTML/domain/timeAgo/storyURL/version/stats"
+        - "Conditional rule: keep-on-any-live-ref with evidence; no unconditional deletes"
+  - id: home-feed-ui-and-launch-cleanup
+    title: Strip Home feed picker plus Menu and dead launch hooks after writer pre-check
+    description: |
+      YAGNI UI deletion plus constant pinning, gated by writer pre-check. reuse: YAGNI (drop picker/Menu branching) + existing FeedType.top/stdlib SwiftUI.
+      Step 1 pre-check: grep selectedFeed reads/writes and FeedType.allCases across repo; log all hits outside HomeView.swift/HomeViewModel.swift with file:line. If external writers exist, KEEP public mutable selection API, remove only picker/Menu UI, hardcode Home load path to .top, and log keep-path. If zero external writers, pin feed to Top (selectedFeed let .top, remove published mutability).
+      Step 2 UI: HomeView.swift delete feedPicker view (lines 55-79) and call site, delete toolbar Menu with FeedType.allCases loop, delete onChange(of: selectedFeed) reload trigger and stale comment. Keep NavigationStack, OfflineBanner, content list, refreshable/task, navigationDestination.
+      Step 3 ViewModel: update loadInitial/refresh/loadMoreIfNeeded to use .top directly per pre-check outcome. Keep pagination, LoadState, save toggles.
+      Step 4 Launch: grep markBackgrounded/markForegrounded callers; delete no-ops in LaunchController.swift and scenePhase onChange block in HackerNewsApp.swift only if no other callers; keep launchController overlay and complete() once-ever logic. Log grep evidence.
+    wave: 1
+    agent: gem-code-simplifier
+    status: pending
+    retries_used: 0
+    acceptance_criteria:
+      - Pre-check evidence logged for selectedFeed and FeedType.allCases writers outside HomeView/HomeViewModel, with keep-or-pin decision recorded
+      - HomeView contains no FeedType.allCases, no feedPicker, no Menu line.3.horizontal.decrease selector, no selectedFeed binding writes on Home path
+      - HomeViewModel loads FeedType.top by default; public mutable feed API removed only if pre-check shows zero external writers, else kept with Home hardcoded to .top and logged
+      - LaunchController has no markBackgrounded/markForegrounded and HackerNewsApp has no scenePhase launch-hook block (only if no other callers proven), but retains once-ever splash overlay
+      - No other tabs (Saved/Search/Settings) or deep-link RootTabView behavior changed
+    handoff:
+      constraints:
+        - "Ownership: HackerNews/Features/Home/HomeView.swift, HackerNews/Features/Home/HomeViewModel.swift, HackerNews/Features/Launch/LaunchController.swift, HackerNews/App/HackerNewsApp.swift only, plus evidence log"
+        - "Do NOT modify FeedType.swift enum, StoryRepository, HackerNewsAPI, PersistenceController, CppCore files"
+        - "Keep FeedType.top plumbing; do not delete multi-feed backend support"
+      relevant_context:
+        - "Native iOS HN client SwiftUI+SwiftData+C++20 via ObjC++ bridge"
+        - "HomeView.swift:55-79 pill picker + toolbar Menu for 6 feeds; HomeViewModel selectedFeed defaults .top"
+        - "LaunchController once-ever splash with dead scenePhase hooks in HackerNewsApp.swift:51-58"
+  - id: build-test-verify
+    title: Verify locked build, tests, and zero dangling references
+    description: |
+      Verification only, no product code changes except trivial break-fix. reuse: platform feature (xcodebuild + rg).
+      Run locked command: xcodebuild test -scheme HackerNews and record pass/fail output. Run repo-wide grep for each deleted symbol (search/evictionPlan/EvictionResult/mergeStories/buildCommentTree/buildCommentTreeFlat/flattenTree/countNodes as C++ symbols, markBackgrounded/markForegrounded, feedPicker/selectedFeed writes in HomeView) and confirm zero dangling refs except logged keep-paths. Manual code check: HomeView has no picker/Menu and ViewModel loads .top. If build fails from missed ref, fix minimally within wave-1 owned files and re-run. Collect evidence log.
+    wave: 2
+    depends_on: [cpp-dead-code-removal, home-feed-ui-and-launch-cleanup]
+    agent: gem-implementer
+    status: pending
+    retries_used: 0
+    acceptance_criteria:
+      - xcodebuild test -scheme HackerNews passes with logged output
+      - Grep evidence shows zero remaining references to deleted symbols; any kept symbol matches keep-path logged in wave 1
+      - Manual code check confirms Home/News tab renders single Top feed with no picker or Menu in code
+    handoff:
+      constraints:
+        - "Ownership: verification logs and read-only grep; break-fix edits limited to files owned by wave-1 tasks"
+        - "Do NOT weaken acceptance criteria to pass; report failure with evidence if unfixable"
+      relevant_context:
+        - "Baseline acceptance: build unbroken, single Top feed, xcodebuild test passes, no dangling refs"
+        - "Risk signals: breaking_change, architecture, shared_state"
+        - "Locked verification: xcodebuild test -scheme HackerNews"

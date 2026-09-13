@@ -1,0 +1,269 @@
+Command line invocation:
+    /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild test -scheme HackerNews -destination "platform=iOS Simulator,name=iPhone 17"
+
+2026-09-11 22:43:43.355 xcodebuild[70082:1689036] [MT] IDERunDestination: Supported platforms for the buildables in the current scheme is empty.
+ComputePackagePrebuildTargetDependencyGraph
+
+Prepare packages
+
+CreateBuildRequest
+
+SendProjectDescription
+
+CreateBuildOperation
+
+ComputeTargetDependencyGraph
+note: Building targets in dependency order
+note: Target dependency graph (2 targets)
+    Target 'HackerNewsTests' in project 'HackerNews'
+        ➜ Explicit dependency on target 'HackerNews' in project 'HackerNews'
+    Target 'HackerNews' in project 'HackerNews' (no dependencies)
+
+GatherProvisioningInputs
+
+CreateBuildDescription
+
+ClangStatCache /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk /Users/dairel/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator26.2-23C57-dc75598d0054f22ec865fa860f139d727d00a8b37fbd7999ea79df8ebc024bf0.sdkstatcache
+    cd /Users/dairel/hacknewsapp_test2/HackerNews.xcodeproj
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk -o /Users/dairel/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator26.2-23C57-dc75598d0054f22ec865fa860f139d727d00a8b37fbd7999ea79df8ebc024bf0.sdkstatcache
+
+2026-09-11 22:44:47.803124+0530 HackerNews[70364:1692645] [General] Failed to send CA Event for app launch measurements for ca_event_type: 0 event_name: com.apple.app_launch_measurement.FirstFramePresentationMetric
+2026-09-11 22:44:48.665323+0530 HackerNews[70364:1692141] [cache] Cache HIT empty-freshness for Top (30 cached) — serving stale
+2026-09-11 22:44:49.499628+0530 HackerNews[70364:1692645] [General] Failed to send CA Event for app launch measurements for ca_event_type: 1 event_name: com.apple.app_launch_measurement.ExtendedLaunchMetrics
+2026-09-11 22:44:49.684449+0530 HackerNews[70364:1692646] [connection] nw_socket_set_connection_idle [C1.1.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:49.685146+0530 HackerNews[70364:1692646] [connection] nw_socket_set_connection_idle [C1.1.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:50.064458+0530 HackerNews[70364:1692854] [connection] nw_socket_set_connection_idle [C1.1.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:50.065477+0530 HackerNews[70364:1692854] [connection] nw_socket_set_connection_idle [C1.1.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+Test Suite 'All tests' started at 2026-09-11 22:44:50.108.
+Test Suite 'HackerNewsTests.xctest' started at 2026-09-11 22:44:50.110.
+Test Suite 'APIClientTests' started at 2026-09-11 22:44:50.111.
+Test Case '-[HackerNewsTests.APIClientTests testAPIErrorDescriptionsAreUserFriendly]' started.
+Test Case '-[HackerNewsTests.APIClientTests testAPIErrorDescriptionsAreUserFriendly]' passed (0.008 seconds).
+Test Case '-[HackerNewsTests.APIClientTests testAPIErrorMapping]' started.
+Test Case '-[HackerNewsTests.APIClientTests testAPIErrorMapping]' passed (0.014 seconds).
+Test Case '-[HackerNewsTests.APIClientTests testCachePolicyFreshness]' started.
+Test Case '-[HackerNewsTests.APIClientTests testCachePolicyFreshness]' passed (0.004 seconds).
+Test Case '-[HackerNewsTests.APIClientTests testEndpointURLConstruction]' started.
+Test Case '-[HackerNewsTests.APIClientTests testEndpointURLConstruction]' passed (0.004 seconds).
+Test Case '-[HackerNewsTests.APIClientTests testFeedTypeEndpoints]' started.
+Test Case '-[HackerNewsTests.APIClientTests testFeedTypeEndpoints]' passed (0.004 seconds).
+Test Case '-[HackerNewsTests.APIClientTests testMockAPIClientReturnsStub]' started.
+Test Case '-[HackerNewsTests.APIClientTests testMockAPIClientReturnsStub]' passed (0.008 seconds).
+Test Suite 'APIClientTests' passed at 2026-09-11 22:44:50.167.
+	 Executed 6 tests, with 0 failures (0 unexpected) in 0.044 (0.057) seconds
+Test Suite 'CommentTests' started at 2026-09-11 22:44:50.169.
+Test Case '-[HackerNewsTests.CommentTests testBuildTreeFlatWhenNoRootKids]' started.
+Test Case '-[HackerNewsTests.CommentTests testBuildTreeFlatWhenNoRootKids]' passed (0.022 seconds).
+Test Case '-[HackerNewsTests.CommentTests testBuildTreeHierarchy]' started.
+Test Case '-[HackerNewsTests.CommentTests testBuildTreeHierarchy]' passed (0.037 seconds).
+Test Case '-[HackerNewsTests.CommentTests testCollapseStatePreserved]' started.
+Test Case '-[HackerNewsTests.CommentTests testCollapseStatePreserved]' passed (0.033 seconds).
+Test Case '-[HackerNewsTests.CommentTests testDeletedCommentHandling]' started.
+2026-09-11 22:44:50.337385+0530 HackerNews[70364:1692141] [persistence] Cache eviction completed. Kept 200 feed items, 0 saved.
+2026-09-11 22:44:50.359839+0530 HackerNews[70364:1692854] [connection] nw_socket_set_connection_idle [C1.1.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:50.363245+0530 HackerNews[70364:1692854] [connection] nw_socket_set_connection_idle [C1.1.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:50.368855+0530 HackerNews[70364:1692880] [connection] nw_socket_set_connection_idle [C1.1.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:50.369988+0530 HackerNews[70364:1692880] [connection] nw_socket_set_connection_idle [C1.1.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+Test Case '-[HackerNewsTests.CommentTests testDeletedCommentHandling]' passed (0.230 seconds).
+Test Case '-[HackerNewsTests.CommentTests testLoadCommentsFetchesNetwork]' started.
+Test Case '-[HackerNewsTests.CommentTests testLoadCommentsFetchesNetwork]' passed (0.032 seconds).
+Test Case '-[HackerNewsTests.CommentTests testLoadCommentsOfflineUsesCache]' started.
+Test Case '-[HackerNewsTests.CommentTests testLoadCommentsOfflineUsesCache]' passed (0.056 seconds).
+Test Suite 'CommentTests' passed at 2026-09-11 22:44:50.595.
+	 Executed 6 tests, with 0 failures (0 unexpected) in 0.410 (0.427) seconds
+Test Suite 'HNItemDTOTests' started at 2026-09-11 22:44:50.596.
+Test Case '-[HackerNewsTests.HNItemDTOTests testDecodingComment]' started.
+Test Case '-[HackerNewsTests.HNItemDTOTests testDecodingComment]' passed (0.006 seconds).
+Test Case '-[HackerNewsTests.HNItemDTOTests testDecodingStory]' started.
+Test Case '-[HackerNewsTests.HNItemDTOTests testDecodingStory]' passed (0.035 seconds).
+Test Case '-[HackerNewsTests.HNItemDTOTests testDeletedAndDead]' started.
+Test Case '-[HackerNewsTests.HNItemDTOTests testDeletedAndDead]' passed (0.004 seconds).
+Test Case '-[HackerNewsTests.HNItemDTOTests testEmptyUrlDomainNil]' started.
+Test Case '-[HackerNewsTests.HNItemDTOTests testEmptyUrlDomainNil]' passed (0.004 seconds).
+Test Case '-[HackerNewsTests.HNItemDTOTests testForwardCompatibilityIgnoresUnknownFields]' started.
+Test Case '-[HackerNewsTests.HNItemDTOTests testForwardCompatibilityIgnoresUnknownFields]' passed (0.004 seconds).
+Test Case '-[HackerNewsTests.HNItemDTOTests testJobDecoding]' started.
+Test Case '-[HackerNewsTests.HNItemDTOTests testJobDecoding]' passed (0.004 seconds).
+Test Case '-[HackerNewsTests.HNItemDTOTests testMalformedResponseThrows]' started.
+Test Case '-[HackerNewsTests.HNItemDTOTests testMalformedResponseThrows]' passed (0.008 seconds).
+Test Case '-[HackerNewsTests.HNItemDTOTests testMissingFields]' started.
+Test Case '-[HackerNewsTests.HNItemDTOTests testMissingFields]' passed (0.004 seconds).
+Test Case '-[HackerNewsTests.HNItemDTOTests testPollDecoding]' started.
+Test Case '-[HackerNewsTests.HNItemDTOTests testPollDecoding]' passed (0.006 seconds).
+Test Suite 'HNItemDTOTests' passed at 2026-09-11 22:44:50.689.
+	 Executed 9 tests, with 0 failures (0 unexpected) in 0.074 (0.092) seconds
+Test Suite 'PersistenceTests' started at 2026-09-11 22:44:50.690.
+Test Case '-[HackerNewsTests.PersistenceTests testCacheEvictionKeepsSaved]' started.
+2026-09-11 22:44:50.735547+0530 HackerNews[70364:1692141] [persistence] Cache eviction completed. Kept 1 feed items, 1 saved.
+2026-09-11 22:44:50.749530+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C1.1.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:50.751381+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C1.1.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:50.752711+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C1.1.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:50.754349+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C1.1.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+Test Case '-[HackerNewsTests.PersistenceTests testCacheEvictionKeepsSaved]' passed (0.083 seconds).
+Test Case '-[HackerNewsTests.PersistenceTests testCacheMetadataUpdateAndFetch]' started.
+Test Case '-[HackerNewsTests.PersistenceTests testCacheMetadataUpdateAndFetch]' passed (0.029 seconds).
+Test Case '-[HackerNewsTests.PersistenceTests testClearAllIncludingSaved]' started.
+Test Case '-[HackerNewsTests.PersistenceTests testClearAllIncludingSaved]' passed (0.043 seconds).
+Test Case '-[HackerNewsTests.PersistenceTests testClearCacheKeepSaved]' started.
+Test Case '-[HackerNewsTests.PersistenceTests testClearCacheKeepSaved]' passed (0.056 seconds).
+Test Case '-[HackerNewsTests.PersistenceTests testCommentPersistence]' started.
+Test Case '-[HackerNewsTests.PersistenceTests testCommentPersistence]' passed (0.021 seconds).
+Test Case '-[HackerNewsTests.PersistenceTests testFeedIsolation]' started.
+Test Case '-[HackerNewsTests.PersistenceTests testFeedIsolation]' passed (0.066 seconds).
+Test Case '-[HackerNewsTests.PersistenceTests testSaveAndFetchStory]' started.
+2026-09-11 22:44:51.020734+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C7.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.022147+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C7.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.023504+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C7.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.025212+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C7.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+Test Case '-[HackerNewsTests.PersistenceTests testSaveAndFetchStory]' passed (0.024 seconds).
+Test Case '-[HackerNewsTests.PersistenceTests testSavedPersistsAcrossFetch]' started.
+2026-09-11 22:44:51.032160+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C6.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.034038+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C6.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.035473+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C6.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.037723+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C6.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.040437+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C2.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.042787+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C2.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.043700+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C2.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.045737+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C2.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.048791+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C4.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.050837+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C4.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.052715+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C4.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.055736+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C4.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.056810+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C3.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.059050+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C3.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.060225+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C3.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.062713+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C3.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.069984+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C8.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.072677+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C8.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.073645+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C8.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.076074+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C8.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.079596+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C5.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.082324+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C5.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.083255+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C5.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.084685+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C5.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.087328+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C1.1.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.089054+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C1.1.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.090615+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C1.1.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.092611+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C1.1.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+Test Case '-[HackerNewsTests.PersistenceTests testSavedPersistsAcrossFetch]' passed (0.070 seconds).
+Test Case '-[HackerNewsTests.PersistenceTests testSaveUnsave]' started.
+Test Case '-[HackerNewsTests.PersistenceTests testSaveUnsave]' passed (0.103 seconds).
+Test Suite 'PersistenceTests' passed at 2026-09-11 22:44:51.208.
+	 Executed 9 tests, with 0 failures (0 unexpected) in 0.495 (0.518) seconds
+Test Suite 'StoryRepositoryTests' started at 2026-09-11 22:44:51.210.
+Test Case '-[HackerNewsTests.StoryRepositoryTests testCacheFirstReturnsCachedWhenFresh]' started.
+2026-09-11 22:44:51.280445+0530 HackerNews[70364:1692141] [cache] Cache HIT fresh for Top
+Test Case '-[HackerNewsTests.StoryRepositoryTests testCacheFirstReturnsCachedWhenFresh]' passed (0.072 seconds).
+Test Case '-[HackerNewsTests.StoryRepositoryTests testFetchStoryUsesCacheWhenFresh]' started.
+2026-09-11 22:44:51.310353+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C7.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.312488+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C7.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.314713+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C7.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.315403+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C7.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.343586+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C6.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.345726+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C6.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.347486+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C6.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+Test Case '-[HackerNewsTests.StoryRepositoryTests testFetchStoryUsesCacheWhenFresh]' passed (0.063 seconds).
+2026-09-11 22:44:51.349280+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C6.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.352106+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C2.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.354028+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C2.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.356088+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C2.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.357951+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C2.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+Test Case '-[HackerNewsTests.StoryRepositoryTests testOfflineReturnsCachedWithError]' started.
+2026-09-11 22:44:51.361148+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C3.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.363058+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C3.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.365008+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C3.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.367144+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C3.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.370660+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C4.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.374262+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C4.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.377223+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C4.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.381323+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C4.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.387474+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C1.1.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.389302+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C1.1.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.390805+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C1.1.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.393186+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C1.1.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.395625+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C5.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.397657+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C5.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.399447+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C5.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.400723+0530 HackerNews[70364:1692141] [cache] Refresh attempt 0 failed Top: You're offline. Showing the latest cached content.
+2026-09-11 22:44:51.402442+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C5.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.405010+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C8.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.406695+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C8.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.407706+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C8.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.409664+0530 HackerNews[70364:1692878] [connection] nw_socket_set_connection_idle [C8.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.581841+0530 HackerNews[70364:1692141] [cache] Refresh attempt 1 failed Top: You're offline. Showing the latest cached content.
+2026-09-11 22:44:51.633528+0530 HackerNews[70364:1692881] [connection] nw_socket_set_connection_idle [C7.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.641445+0530 HackerNews[70364:1692881] [connection] nw_socket_set_connection_idle [C7.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.642770+0530 HackerNews[70364:1692881] [connection] nw_socket_set_connection_idle [C7.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.644387+0530 HackerNews[70364:1692881] [connection] nw_socket_set_connection_idle [C7.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.647703+0530 HackerNews[70364:1692881] [connection] nw_socket_set_connection_idle [C6.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.649453+0530 HackerNews[70364:1692881] [connection] nw_socket_set_connection_idle [C6.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.650922+0530 HackerNews[70364:1692881] [connection] nw_socket_set_connection_idle [C6.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.652622+0530 HackerNews[70364:1692881] [connection] nw_socket_set_connection_idle [C6.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.655481+0530 HackerNews[70364:1692881] [connection] nw_socket_set_connection_idle [C2.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.657237+0530 HackerNews[70364:1692881] [connection] nw_socket_set_connection_idle [C2.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.658585+0530 HackerNews[70364:1692881] [connection] nw_socket_set_connection_idle [C2.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.660217+0530 HackerNews[70364:1692881] [connection] nw_socket_set_connection_idle [C2.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.675402+0530 HackerNews[70364:1692854] [connection] nw_socket_set_connection_idle [C3.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.678763+0530 HackerNews[70364:1692854] [connection] nw_socket_set_connection_idle [C3.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.682047+0530 HackerNews[70364:1692854] [connection] nw_socket_set_connection_idle [C3.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.685660+0530 HackerNews[70364:1692854] [connection] nw_socket_set_connection_idle [C3.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.687835+0530 HackerNews[70364:1692854] [connection] nw_socket_set_connection_idle [C4.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.689863+0530 HackerNews[70364:1692854] [connection] nw_socket_set_connection_idle [C4.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.692944+0530 HackerNews[70364:1692854] [connection] nw_socket_set_connection_idle [C1.1.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.695450+0530 HackerNews[70364:1692854] [connection] nw_socket_set_connection_idle [C1.1.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.767705+0530 HackerNews[70364:1692646] [connection] nw_socket_set_connection_idle [C8.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.770968+0530 HackerNews[70364:1692646] [connection] nw_socket_set_connection_idle [C8.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.774486+0530 HackerNews[70364:1692646] [connection] nw_socket_set_connection_idle [C5.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.775860+0530 HackerNews[70364:1692646] [connection] nw_socket_set_connection_idle [C5.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.933400+0530 HackerNews[70364:1692141] [cache] Refresh attempt 2 failed Top: You're offline. Showing the latest cached content.
+2026-09-11 22:44:51.933892+0530 HackerNews[70364:1692646] [connection] nw_socket_set_connection_idle [C7.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.935723+0530 HackerNews[70364:1692646] [connection] nw_socket_set_connection_idle [C7.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+Test Case '-[HackerNewsTests.StoryRepositoryTests testOfflineReturnsCachedWithError]' passed (0.584 seconds).
+Test Case '-[HackerNewsTests.StoryRepositoryTests testRefreshMergesNetworkData]' started.
+2026-09-11 22:44:51.947129+0530 HackerNews[70364:1692686] [connection] nw_socket_set_connection_idle [C6.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.948648+0530 HackerNews[70364:1692686] [connection] nw_socket_set_connection_idle [C6.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.951873+0530 HackerNews[70364:1692686] [connection] nw_socket_set_connection_idle [C2.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.953648+0530 HackerNews[70364:1692686] [connection] nw_socket_set_connection_idle [C2.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+2026-09-11 22:44:51.969312+0530 HackerNews[70364:1692141] [cache] Refreshed Top: 2 stories (attempt 0)
+Test Case '-[HackerNewsTests.StoryRepositoryTests testRefreshMergesNetworkData]' passed (0.036 seconds).
+Test Case '-[HackerNewsTests.StoryRepositoryTests testSavedNotDeletedByRefresh]' started.
+2026-09-11 22:44:52.025800+0530 HackerNews[70364:1692141] [cache] Refreshed Top: 1 stories (attempt 0)
+Test Case '-[HackerNewsTests.StoryRepositoryTests testSavedNotDeletedByRefresh]' passed (0.055 seconds).
+Test Case '-[HackerNewsTests.StoryRepositoryTests testSearchFindsCachedContent]' started.
+2026-09-11 22:44:52.052234+0530 HackerNews[70364:1692881] [connection] nw_socket_set_connection_idle [C3.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+Test Case '-[HackerNewsTests.StoryRepositoryTests testSearchFindsCachedContent]' passed (0.022 seconds).
+2026-09-11 22:44:52.053818+0530 HackerNews[70364:1692881] [connection] nw_socket_set_connection_idle [C3.1.1:3] setsockopt SO_CONNECTION_IDLE failed [42: Protocol not available]
+Test Case '-[HackerNewsTests.StoryRepositoryTests testToggleSaveLocalOnly]' started.
+Test Case '-[HackerNewsTests.StoryRepositoryTests testToggleSaveLocalOnly]' passed (0.029 seconds).
+Test Suite 'StoryRepositoryTests' passed at 2026-09-11 22:44:52.086.
+	 Executed 7 tests, with 0 failures (0 unexpected) in 0.860 (0.875) seconds
+Test Suite 'ViewModelTests' started at 2026-09-11 22:44:52.087.
+Test Case '-[HackerNewsTests.ViewModelTests testHomeViewModelEmptyState]' started.
+2026-09-11 22:44:52.177622+0530 HackerNews[70364:1692141] [cache] Refreshed Top: 30 stories (attempt 0)
+2026-09-11 22:44:52.258350+0530 HackerNews[70364:1692141] [cache] Refresh attempt 0 failed Top: You're offline. Showing the latest cached content.
+2026-09-11 22:44:52.448803+0530 HackerNews[70364:1692141] [cache] Refresh attempt 1 failed Top: You're offline. Showing the latest cached content.
+2026-09-11 22:44:52.799935+0530 HackerNews[70364:1692141] [cache] Refresh attempt 2 failed Top: You're offline. Showing the latest cached content.
+Test Case '-[HackerNewsTests.ViewModelTests testHomeViewModelEmptyState]' passed (0.716 seconds).
+Test Case '-[HackerNewsTests.ViewModelTests testHomeViewModelLoadStateTransitions]' started.
+2026-09-11 22:44:52.831870+0530 HackerNews[70364:1692141] [cache] Refreshed Top: 1 stories (attempt 0)
+Test Case '-[HackerNewsTests.ViewModelTests testHomeViewModelLoadStateTransitions]' passed (0.030 seconds).
+Test Case '-[HackerNewsTests.ViewModelTests testSavedViewModelFiltering]' started.
+Test Case '-[HackerNewsTests.ViewModelTests testSavedViewModelFiltering]' passed (0.027 seconds).
+Test Case '-[HackerNewsTests.ViewModelTests testSearchViewModelFindsResults]' started.
+Test Case '-[HackerNewsTests.ViewModelTests testSearchViewModelFindsResults]' passed (0.024 seconds).
+Test Suite 'ViewModelTests' passed at 2026-09-11 22:44:52.890.
+	 Executed 4 tests, with 0 failures (0 unexpected) in 0.796 (0.804) seconds
+Test Suite 'HackerNewsTests.xctest' passed at 2026-09-11 22:44:52.892.
+	 Executed 41 tests, with 0 failures (0 unexpected) in 2.679 (2.782) seconds
+Test Suite 'All tests' passed at 2026-09-11 22:44:52.893.
+	 Executed 41 tests, with 0 failures (0 unexpected) in 2.679 (2.785) seconds
+2026-09-11 22:44:53.261 xcodebuild[70082:1689036] [MT] IDETestOperationsObserverDebug: 65.923 elapsed -- Testing started completed.
+2026-09-11 22:44:53.261 xcodebuild[70082:1689036] [MT] IDETestOperationsObserverDebug: 0.000 sec, +0.000 sec -- start
+2026-09-11 22:44:53.261 xcodebuild[70082:1689036] [MT] IDETestOperationsObserverDebug: 65.923 sec, +65.923 sec -- end
+
+Test session results, code coverage, and logs:
+	/Users/dairel/Library/Developer/Xcode/DerivedData/HackerNews-djklocittfmmwtfsxymvflbhelgc/Logs/Test/Test-HackerNews-2026.09.11_22-43-43-+0530.xcresult
+
+** TEST SUCCEEDED **
+
+Testing started
