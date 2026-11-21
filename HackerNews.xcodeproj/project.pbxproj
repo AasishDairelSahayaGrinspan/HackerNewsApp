@@ -494,10 +494,11 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					1EA42FC82146D03BE171BC36 = {
-						DevelopmentTeam = L8HTG27444;
+						DevelopmentTeam = 86VC7S7G9V;
 						ProvisioningStyle = Automatic;
 					};
 					34B7AB0E02916C071531C8F5 = {
+						DevelopmentTeam = 86VC7S7G9V;
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -613,6 +614,7 @@
 				CLANG_CXX_LIBRARY = "libc++";
 				CODE_SIGNING_ALLOWED = YES;
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 86VC7S7G9V;
 				GENERATE_INFOPLIST_FILE = YES;
 				HEADER_SEARCH_PATHS = "$(SRCROOT)/HackerNews/Core/Engine/include";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -639,7 +641,7 @@
 				CODE_SIGNING_ALLOWED = YES;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = L8HTG27444;
+				DEVELOPMENT_TEAM = 86VC7S7G9V;
 				ENABLE_PREVIEWS = YES;
 				HEADER_SEARCH_PATHS = "$(SRCROOT)/HackerNews/Core/Engine/include";
 				INFOPLIST_FILE = HackerNews/Info.plist;
@@ -732,6 +734,7 @@
 				CLANG_CXX_LIBRARY = "libc++";
 				CODE_SIGNING_ALLOWED = YES;
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 86VC7S7G9V;
 				GENERATE_INFOPLIST_FILE = YES;
 				HEADER_SEARCH_PATHS = "$(SRCROOT)/HackerNews/Core/Engine/include";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -817,7 +820,7 @@
 				CODE_SIGNING_ALLOWED = YES;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = L8HTG27444;
+				DEVELOPMENT_TEAM = 86VC7S7G9V;
 				ENABLE_PREVIEWS = YES;
 				HEADER_SEARCH_PATHS = "$(SRCROOT)/HackerNews/Core/Engine/include";
 				INFOPLIST_FILE = HackerNews/Info.plist;
