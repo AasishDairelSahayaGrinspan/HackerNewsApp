@@ -1,13 +1,13 @@
-# Hacker News — Native iOS app with a C++ engine
+# Hacker News — Native iOS app with a Swift backend
 
 A native Hacker News client for iPhone and iPad. SwiftUI renders the interface;
-a C++20 engine owns networking, persistence, caching, comment traversal, search,
-state and telemetry. Swift no longer contains a repository, API client,
-SwiftData model container or cache policy.
+a Swift backend owns networking, persistence, caching, comment traversal, search,
+state and telemetry. Views only subscribe to immutable snapshots and send
+intents — they no longer contain repositories, API clients, cache policy or
+SwiftData queries.
 
-The engine is structured like a market-data/trading core: a single event
-dispatcher owns mutable state, network results are posted back as events, and
-the UI receives immutable snapshots tagged with a monotonic revision.
+The backend keeps the market-data/trading-core structure: one owner of mutable
+state, commands in, immutable snapshots with a monotonic revision out.
 
 ## Requirements
 
@@ -21,87 +21,72 @@ the UI receives immutable snapshots tagged with a monotonic revision.
 ```
 HackerNews/
 ├── App/                       SwiftUI app entry, deep links, tab shell
-├── Core/Engine/
-│   ├── include/hn/            Public C++ engine headers
-│   │   ├── Types.hpp          Items, stories, comments, snapshots, telemetry
-│   │   ├── Feed.hpp           6 feed identifiers
-│   │   ├── Engine.hpp         Engine facade and command API
-│   │   ├── Dispatcher.hpp     Single command loop + delayed timer queue
-│   │   ├── ApiClient.hpp      Coalescing, retries, bounded request batches
-│   │   ├── Store.hpp          SQLite write-behind persistence
-│   │   ├── SearchIndex.hpp    In-memory token index + substring fallback
-│   │   ├── Tree.hpp           Comment tree builder with cycle guards
-│   │   ├── Json.hpp           Dependency-free JSON parser
-│   │   ├── Text.hpp           HTML, domains, relative time, feed paths
-│   │   ├── CachePolicy.hpp    5m fresh / 30m stale / 24h max
-│   │   └── Transport.hpp      Platform HTTP boundary
-│   ├── src/                   Engine implementation
-│   ├── platform/
-│   │   └── AppleTransport.mm  NSURLSession isolation (ObjC++)
-│   ├── Bridge/
-│   │   ├── HNEngine.h         Typed Objective-C facade + listener protocol
-│   │   └── HNEngine.mm        ObjC++ conversion and main-queue delivery
-│   ├── EngineClient.swift     ObservableObject adapter over the bridge
-│   └── EngineModels.swift     Swift presentation models and snapshot mapping
+├── Core/Backend/
+│   ├── AppBackend.swift       Backend facade: feeds, stories, comments, saved,
+│   │                          search, cache commands and snapshot emission
+│   ├── BackendModels.swift    Domain models, snapshots, status and errors
+│   ├── HackerNewsAPI.swift    HN wire protocol, item coalescing, batching
+│   ├── APIClient.swift        URLSession transport, retries, URL metrics
+│   ├── APIError.swift         Error classification and retry policy
+│   ├── APIModels.swift        Wire DTOs and request metrics
+│   ├── Endpoint.swift         Typed endpoint-to-URL construction
+│   ├── PersistenceModels.swift SwiftData models
+│   ├── PersistenceController.swift Store lifecycle, queries, eviction
+│   ├── CommentTree.swift      Nested tree builder with cycle guards
+│   ├── SearchIndex.swift      In-memory token index + substring fallback
+│   └── CachePolicy.swift      5m fresh / 30m stale / 24h max
 ├── Features/                  Home, StoryDetail, Comments, Saved, Search, Settings
 ├── Shared/                    Components and small presentation extensions
-└── Domain/                    FeedType bridge mapping
+└── Domain/                    FeedType identifiers
 ```
 
-### Event-driven core
+### Single-owner state
 
-`hn::Engine` creates:
-
-* one **worker dispatcher** thread that executes every command,
-* one **timer** thread for retries, heartbeats and delayed work,
-* an `ApiClient` that posts network completions back onto the dispatcher.
-
-All mutable engine state — feed pages, story snapshots, comment BFS state,
-saved IDs, metrics and status — is touched only on the dispatcher thread.
-Network callbacks never mutate state directly.
+`AppBackend` is `@MainActor` and owns all mutable state: feed pages, story
+snapshots, comment BFS state, saved IDs, metrics and status. Async work returns
+to the main actor to apply results. Generations guard feed and comment loads, so
+a late response from a previous feed or comment request cannot overwrite current
+state.
 
 ### Snapshot + revision stream
 
 Every UI update is an immutable snapshot with a `revision`:
 
-* `FeedSnapshot` — phase, ordered stories, last sync, offline/stale flags, error
-* `StorySnapshot` — story detail phase and payload
-* `CommentsSnapshot` — nested comment roots, loading/complete flags, totals
-* `SavedSnapshot` — saved rows
-* `Status` — cache counts, database size, uptime, metrics
+* `FeedSnapshotModel` — phase, ordered stories, last sync, offline/stale flags, error
+* `StorySnapshotModel` — story detail phase and payload
+* `CommentsSnapshotModel` — nested comment roots, loading/complete flags, totals
+* `SavedStory` rows
+* `EngineStatus` — cache counts, database size, uptime, metrics
 
-The bridge converts these to Objective-C models and delivers listener callbacks
-on the main queue. `EngineClient` mirrors them into Combine publishers; view
-models map them into Swift structs and forward user intents as commands.
+`AppBackend` publishes snapshots through Combine; view models map them into
+Swift structs and forward user intents as backend commands. Pull-to-refresh
+waits on a revision change rather than an arbitrary delay.
 
 ### Networking
 
-`AppleTransport.mm` is the only Apple networking code. It performs an
-`NSURLSession` request and reports status, body, error class and latency. All
-retry, in-flight request coalescing, ordering, batching and timeout policy live
-in C++:
+`APIClient` is the only URLSession transport. `HackerNewsAPI` is an actor that
+owns the HN protocol:
 
 * feed IDs: `topstories.json`, `newstories.json`, `beststories.json`,
   `askstories.json`, `showstories.json`, `jobstories.json`
 * items: `item/{id}.json`, `maxitem.json`
 * base URL: `https://hacker-news.firebaseio.com/v0/`
-* retries: two attempts with 350ms / 800ms backoff for transient failures
+* retries: two attempts with 400ms / 800ms backoff for transient failures
 * feed batch concurrency: 8
 * comment batch concurrency: 12
-* duplicate item requests are merged through a waiter list
+* duplicate item requests are merged through an in-flight task map
+* bounded `AsyncSemaphore` caps concurrent item requests
 
 ### Persistence and cache policy
 
-`Store` uses the SQLite C API directly with WAL mode:
+SwiftData stores:
 
-* `stories` — decoded stories keyed by HN item ID
-* `comments` — flat comment rows keyed by comment ID
-* `saved` — user-owned saved rows (never evicted)
-* `feed_meta` — ordered feed ID lists and fetch timestamps
+* `CachedStory` — decoded stories keyed by HN item ID
+* `CachedComment` — flat comment rows keyed by comment ID
+* `SavedStoryModel` — user-owned saved rows (never evicted)
+* `CacheMetadata` — ordered feed ID lists and fetch timestamps
 
-SQLite is the write-behind journal. The engine updates the in-memory book,
-emits a snapshot, and persists in the same command turn. The cache policy is a
-single C++ source of truth:
+`CachePolicy` is the single source of truth:
 
 * fresh: `< 5 minutes`
 * stale: `< 30 minutes`
@@ -109,7 +94,9 @@ single C++ source of truth:
 * eviction keeps saved stories, feed head (200 IDs) and 3 days of data
 
 Saved stories survive `Clear Cache (Keep Saved)`. `Clear Everything` removes
-stories, comments, feed metadata and saved rows.
+stories, comments, feed metadata and saved rows. If an older build left an
+incompatible SwiftData store, the backend recreates the disposable cache store
+instead of silently degrading to memory.
 
 ### Comments
 
@@ -133,7 +120,7 @@ search. `SearchIndex` maintains:
 * substring/field weighting fallback
 * deterministic ordering by relevance, score, creation time and ID
 
-The index is rebuilt from SQLite on launch and updated as stories are fetched.
+The index is rebuilt from SwiftData on launch and updated as stories are fetched.
 
 ## How to run
 
@@ -172,15 +159,16 @@ xcodebuild test -project HackerNews.xcodeproj -scheme HackerNews \
   -destination 'platform=iOS Simulator,name=iPhone 17,OS=26.3.1'
 ```
 
-19 tests, no live network:
+20 tests, no live network:
 
-* `HNCoreTests.mm` — C++ XCTest covering JSON, HTML/entities, domains,
-  relative time, feed paths, cache freshness boundaries, comment-tree ordering
-  and cycle breaking, search indexing, SQLite stories/comments/saved/clear,
-  and dispatcher ordering/timers.
-* `HNEngineBridgeTests.swift` — Objective-C++ bridge and engine lifecycle:
-  start/status/version, save/unsave round trips, local search start state,
-  clear-cache behavior, and story snapshot delivery.
+* `BackendPersistenceTests.swift` — SwiftData story/comment/saved round trips,
+  upsert behavior, clear-cache semantics and eviction retention.
+* `BackendSearchTreeTests.swift` — comment-tree ordering, parentless roots,
+  cycle and depth guards, search ranking/prefix/domain matching, index updates,
+  and cache freshness boundaries.
+* `BackendLifecycleTests.swift` — backend start, feed load, feed switching,
+  save/unsave snapshots, story detail snapshots, cache clearing and local search
+  against a mock HN API.
 
 The same suite runs on a connected iPhone with:
 
@@ -202,7 +190,7 @@ xcodebuild test -project HackerNews.xcodeproj -scheme HackerNews \
 * Deep link: `hnreader://story/123`
 * Haptics and system sounds, respecting user settings
 * Appearance (system/light/dark)
-* Settings engine diagnostics: cached rows, database size, requests, retries,
+* Settings backend diagnostics: cached rows, database size, requests, retries,
   cache hit rate, latency, snapshots and uptime
 * X-style launch animation
 * Dynamic Type, VoiceOver labels, Reduce Motion support

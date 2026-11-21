@@ -3,18 +3,18 @@ import SwiftUI
 @main
 struct HackerNewsApp: App {
     @StateObject private var settings: SettingsStore
-    @StateObject private var engine: EngineClient
+    @StateObject private var backend: AppBackend
     @StateObject private var launchController = LaunchController()
     @Environment(\.scenePhase) private var scenePhase
 
     @MainActor
     init() {
         let settingsStore = SettingsStore.shared
-        let engineClient = EngineClient.shared
+        let appBackend = AppBackend.shared
         _settings = StateObject(wrappedValue: settingsStore)
-        _engine = StateObject(wrappedValue: engineClient)
+        _backend = StateObject(wrappedValue: appBackend)
         _launchController = StateObject(wrappedValue: LaunchController())
-        engineClient.start()
+        appBackend.start()
     }
 
     var body: some Scene {
@@ -22,14 +22,14 @@ struct HackerNewsApp: App {
             ZStack {
                 RootTabView()
                     .environmentObject(settings)
-                    .environmentObject(engine)
+                    .environmentObject(backend)
                     .preferredColorScheme(colorScheme)
                     .onOpenURL { url in
                         handleDeepLink(url)
                     }
                     .task {
                         try? await Task.sleep(nanoseconds: 2_000_000_000)
-                        engine.evictCache()
+                        backend.evictCache()
                     }
 
                 // X-style 3D launch overlay — icon→3D→UI continuity
@@ -43,7 +43,7 @@ struct HackerNewsApp: App {
             }
             .onChange(of: scenePhase) { _, phase in
                 if phase == .background {
-                    engine.evictCache()
+                    backend.evictCache()
                 }
             }
         }

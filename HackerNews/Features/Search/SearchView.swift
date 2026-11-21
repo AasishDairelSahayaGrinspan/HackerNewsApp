@@ -54,12 +54,13 @@ final class SearchViewModel: ObservableObject {
     }
     @Published private(set) var results: [Story] = []
 
-    private let client: EngineClient
+    private let client: AppBackend
     private var cancellables = Set<AnyCancellable>()
 
-    init(client: EngineClient = .shared) {
-        self.client = client
-        client.$savedStories
+    init(client: AppBackend? = nil) {
+        let backend = client ?? .shared
+        self.client = backend
+        backend.$savedStories
             .sink { [weak self] saved in
                 guard let self else { return }
                 let ids = Set(saved.map(\.storyID))

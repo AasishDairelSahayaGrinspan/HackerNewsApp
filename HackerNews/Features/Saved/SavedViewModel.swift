@@ -6,17 +6,18 @@ final class SavedViewModel: ObservableObject {
     @Published private(set) var savedStories: [SavedStory] = []
     @Published var searchText = ""
 
-    private let client: EngineClient
+    private let client: AppBackend
     private var cancellables = Set<AnyCancellable>()
 
-    init(client: EngineClient = .shared) {
-        self.client = client
-        client.$savedStories
+    init(client: AppBackend? = nil) {
+        let backend = client ?? .shared
+        self.client = backend
+        backend.$savedStories
             .sink { [weak self] stories in
                 self?.savedStories = stories
             }
             .store(in: &cancellables)
-        savedStories = client.saved()
+        savedStories = backend.saved()
     }
 
     func refresh() {

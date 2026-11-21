@@ -16,39 +16,40 @@ final class StoryDetailViewModel: ObservableObject {
     @Published var showSafari = false
 
     private let storyID: Int
-    private let client: EngineClient
+    private let client: AppBackend
     private var cancellables = Set<AnyCancellable>()
     private var hasStarted = false
 
-    init(storyID: Int, client: EngineClient = .shared) {
+    init(storyID: Int, client: AppBackend? = nil) {
+        let backend = client ?? .shared
         self.storyID = storyID
-        self.client = client
+        self.client = backend
 
-        client.$storySnapshots
+        backend.$storySnapshots
             .compactMap { $0[storyID] }
             .sink { [weak self] snapshot in
                 self?.applyStory(snapshot)
             }
             .store(in: &cancellables)
 
-        client.$commentsSnapshots
+        backend.$commentsSnapshots
             .compactMap { $0[storyID] }
             .sink { [weak self] snapshot in
                 self?.applyComments(snapshot)
             }
             .store(in: &cancellables)
 
-        client.$savedStories
+        backend.$savedStories
             .sink { [weak self] saved in
                 guard let self else { return }
                 self.isSaved = saved.contains { $0.storyID == self.storyID }
             }
             .store(in: &cancellables)
 
-        if let snapshot = client.storySnapshot(for: storyID) {
+        if let snapshot = backend.storySnapshot(for: storyID) {
             applyStory(snapshot)
         }
-        if let snapshot = client.commentsSnapshot(for: storyID) {
+        if let snapshot = backend.commentsSnapshot(for: storyID) {
             applyComments(snapshot)
         }
     }

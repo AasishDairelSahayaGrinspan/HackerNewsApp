@@ -50,40 +50,26 @@ targets:
       base:
         INFOPLIST_FILE: HackerNews/Info.plist
         PRODUCT_BUNDLE_IDENTIFIER: com.aasishdarrel.hacknews
-        SWIFT_OBJC_BRIDGING_HEADER: HackerNews/HackerNews-Bridging-Header.h
         SWIFT_EMIT_LOC_STRINGS: YES
-        CLANG_CXX_LANGUAGE_STANDARD: c++20
-        CLANG_CXX_LIBRARY: libc++
-        HEADER_SEARCH_PATHS: $(SRCROOT)/HackerNews/Core/Engine/include
-        OTHER_CFLAGS: -I$(SRCROOT)/HackerNews/Core/Engine/include
         CODE_SIGN_STYLE: Automatic
         CODE_SIGN_IDENTITY: "Apple Development"
         DEVELOPMENT_TEAM: 86VC7S7G9V
         CODE_SIGNING_ALLOWED: YES
         ENABLE_PREVIEWS: YES
-    dependencies:
-      - sdk: libsqlite3.tbd
+    dependencies: []
 
   HackerNewsTests:
     type: bundle.unit-test
     platform: iOS
     deploymentTarget: "17.0"
     bundleId: com.hacknews.tests
-    sources:
-      - HackerNewsTests
-      - path: HackerNews/Core/Engine/src
+    sources: [HackerNewsTests]
     dependencies:
       - target: HackerNews
-      - sdk: libsqlite3.tbd
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.hacknews.tests
         DEVELOPMENT_TEAM: 86VC7S7G9V
-        SWIFT_OBJC_BRIDGING_HEADER: HackerNews/HackerNews-Bridging-Header.h
-        CLANG_CXX_LANGUAGE_STANDARD: c++20
-        CLANG_CXX_LIBRARY: libc++
-        HEADER_SEARCH_PATHS: $(SRCROOT)/HackerNews/Core/Engine/include
-        OTHER_CFLAGS: -I$(SRCROOT)/HackerNews/Core/Engine/include
         CODE_SIGN_STYLE: Automatic
         CODE_SIGNING_ALLOWED: YES
         GENERATE_INFOPLIST_FILE: YES

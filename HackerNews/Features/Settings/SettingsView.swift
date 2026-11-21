@@ -2,7 +2,7 @@ import SwiftUI
 
 struct SettingsView: View {
     @EnvironmentObject var settings: SettingsStore
-    @EnvironmentObject var engine: EngineClient
+    @EnvironmentObject var backend: AppBackend
     @State private var showClearConfirm = false
     @State private var clearMessage: String?
 
@@ -51,7 +51,7 @@ struct SettingsView: View {
                     }
                     Button(role: .destructive) {
                         SoundManager.playDestructive()
-                        engine.clearCache(keepSaved: false)
+                        backend.clearCache(keepSaved: false)
                         clearMessage = "All data cleared."
                         HapticsManager.success()
                     } label: {
@@ -63,22 +63,22 @@ struct SettingsView: View {
                 }
 
                 Section {
-                    LabeledContent("Core", value: engine.status.coreVersion)
-                    LabeledContent("Cached stories", value: "\(engine.status.cachedStories)")
-                    LabeledContent("Cached comments", value: "\(engine.status.cachedComments)")
-                    LabeledContent("Saved stories", value: "\(engine.status.savedCount)")
-                    LabeledContent("Search documents", value: "\(engine.status.searchDocs)")
-                    LabeledContent("Database", value: engine.status.formattedDatabaseSize)
-                    LabeledContent("Network requests", value: "\(engine.status.metrics.requests)")
-                    LabeledContent("Retries", value: "\(engine.status.metrics.retries)")
+                    LabeledContent("Core", value: backend.status.coreVersion)
+                    LabeledContent("Cached stories", value: "\(backend.status.cachedStories)")
+                    LabeledContent("Cached comments", value: "\(backend.status.cachedComments)")
+                    LabeledContent("Saved stories", value: "\(backend.status.savedCount)")
+                    LabeledContent("Search documents", value: "\(backend.status.searchDocs)")
+                    LabeledContent("Database", value: backend.status.formattedDatabaseSize)
+                    LabeledContent("Network requests", value: "\(backend.status.metrics.requests)")
+                    LabeledContent("Retries", value: "\(backend.status.metrics.retries)")
                     LabeledContent("Cache hit rate", value: cacheHitRate)
                     LabeledContent("Average latency", value: averageLatency)
-                    LabeledContent("Snapshots emitted", value: "\(engine.status.metrics.snapshotsEmitted)")
+                    LabeledContent("Snapshots emitted", value: "\(backend.status.metrics.snapshotsEmitted)")
                     LabeledContent("Uptime", value: uptime)
                 } header: {
-                    Text("Engine")
+                    Text("Backend")
                 } footer: {
-                    Text("C++20 event loop · SQLite write-behind · local search index")
+                    Text("Swift actors · SwiftData persistence · local search index")
                         .font(.caption2)
                 }
 
@@ -106,7 +106,7 @@ struct SettingsView: View {
                         }
                     }
                     .simultaneousGesture(TapGesture().onEnded { SoundManager.playNavigationTap() })
-                    Text("SwiftUI renders the interface. A native C++ engine owns networking, persistence, caching, comment traversal and search. No tracking, no accounts required. Content © Y Combinator.")
+                    Text("SwiftUI renders the interface. A Swift backend owns networking, persistence, caching, comment traversal and search. No tracking, no accounts required. Content © Y Combinator.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -115,7 +115,7 @@ struct SettingsView: View {
             .alert("Clear cache?", isPresented: $showClearConfirm) {
                 Button("Clear", role: .destructive) {
                     SoundManager.playDestructive()
-                    engine.clearCache(keepSaved: true)
+                    backend.clearCache(keepSaved: true)
                     clearMessage = "Cache cleared. Saved stories kept."
                     HapticsManager.success()
                 }
@@ -129,17 +129,17 @@ struct SettingsView: View {
     }
 
     private var cacheHitRate: String {
-        let rate = engine.status.metrics.cacheHitRate
+        let rate = backend.status.metrics.cacheHitRate
         return rate == 0 ? "—" : String(format: "%.0f%%", rate * 100)
     }
 
     private var averageLatency: String {
-        let latency = engine.status.metrics.averageLatencyMs
+        let latency = backend.status.metrics.averageLatencyMs
         return latency == 0 ? "—" : String(format: "%.0f ms", latency)
     }
 
     private var uptime: String {
-        let seconds = Int(engine.status.uptimeSeconds)
+        let seconds = Int(backend.status.uptimeSeconds)
         if seconds < 60 { return "\(seconds)s" }
         if seconds < 3600 { return "\(seconds / 60)m" }
         return "\(seconds / 3600)h \((seconds % 3600) / 60)m"
@@ -149,5 +149,5 @@ struct SettingsView: View {
 #Preview {
     SettingsView()
         .environmentObject(SettingsStore.shared)
-        .environmentObject(EngineClient.shared)
+        .environmentObject(AppBackend.shared)
 }

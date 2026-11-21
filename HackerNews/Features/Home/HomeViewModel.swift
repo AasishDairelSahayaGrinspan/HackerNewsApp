@@ -6,26 +6,27 @@ import Combine
 @MainActor
 final class HomeViewModel: ObservableObject {
     @Published private(set) var stories: [Story] = []
-    @Published private(set) var phase: HNPhase = .idle
+    @Published private(set) var phase: LoadPhase = .idle
     @Published private(set) var selectedFeed: FeedType = .top
     @Published private(set) var isOffline = false
     @Published private(set) var isStale = false
     @Published private(set) var lastFetched: Date?
     @Published private(set) var errorMessage: String?
 
-    private let client: EngineClient
+    private let client: AppBackend
     private var cancellables = Set<AnyCancellable>()
     private var lastLoadMoreTriggerCount = -1
     private var hasStarted = false
 
-    init(client: EngineClient = .shared) {
-        self.client = client
-        client.$feed
+    init(client: AppBackend? = nil) {
+        let backend = client ?? .shared
+        self.client = backend
+        backend.$feed
             .sink { [weak self] snapshot in
                 self?.apply(snapshot)
             }
             .store(in: &cancellables)
-        apply(client.feed)
+        apply(backend.feed)
     }
 
     func start() {
@@ -43,16 +44,19 @@ final class HomeViewModel: ObservableObject {
     }
 
     func refresh() async {
+        let startRevision = client.feed.revision
         client.refreshFeed()
         HapticsManager.selectionChanged()
         SoundManager.playRefreshSound()
 
         await withTaskGroup(of: Void.self) { group in
-            group.addTask { [feed = client.$feed] in
-                _ = await feed
-                    .dropFirst()
-                    .first(where: { $0.phase == .loaded || $0.phase == .failed })
-                    .values
+            group.addTask { [client] in
+                for await snapshot in await client.feedUpdates() {
+                    if snapshot.revision > startRevision,
+                       snapshot.phase == .loaded || snapshot.phase == .failed {
+                        break
+                    }
+                }
             }
             group.addTask {
                 try? await Task.sleep(nanoseconds: 20_000_000_000)
