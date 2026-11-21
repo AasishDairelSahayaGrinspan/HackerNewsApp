@@ -1,127 +1,217 @@
-# Hacker News - Production iOS App with C++ Core
+# Hacker News — Native iOS app with a C++ engine
 
-Production-grade native Hacker News client for iPhone. SwiftUI + SwiftData + **C++20 Core Engine** (hybrid). Feels like a serious App Store product, not a demo.
+A native Hacker News client for iPhone and iPad. SwiftUI renders the interface;
+a C++20 engine owns networking, persistence, caching, comment traversal, search,
+state and telemetry. Swift no longer contains a repository, API client,
+SwiftData model container or cache policy.
 
-## Overview
-
-Reads the official [Hacker News Firebase API](https://github.com/HackerNews/API) (`https://hacker-news.firebaseio.com/v0/`). No scraper, no auth, no third-party networking. Offline-first, cached, saved, searchable, accessible.
+The engine is structured like a market-data/trading core: a single event
+dispatcher owns mutable state, network results are posted back as events, and
+the UI receives immutable snapshots tagged with a monotonic revision.
 
 ## Requirements
 
-* Xcode 26.3+ (Swift 6.2.4, iOS SDK 26.2)
-* iOS 17.0+ deployment target (SwiftData)
-* iPhone + iPad (portrait + landscape, Dynamic Type, VoiceOver, Reduce Motion, Dark Mode)
+* Xcode 26.3+ (iOS 26 SDK)
+* iOS 17.0+ deployment target
+* No third-party dependencies
+* `xcodegen` for project regeneration
 
 ## Architecture
 
 ```
-App (SwiftUI App)
- ├─ Core
- │   ├─ CppCore (C++20) — HNCppEngine, CachePolicyCpp, HNTypes, Bridge
- │   ├─ Networking (URLSession, async/await, retry, timeout)
- │   ├─ Persistence (SwiftData: CachedStory, CachedComment, SavedStory, CacheMetadata)
- │   ├─ Caching (CachePolicy fresh/stale/expired)
- │   ├─ Haptics/Audio (UIImpact, SystemSound)
- │   └─ Logging (os.Logger)
- ├─ API (HackerNewsAPI actor, DTOs, Endpoint)
- ├─ Data (StoryRepository, CommentRepository - offline-first, BFS, chunked)
- ├─ Domain (FeedType)
- └─ Features (Home, StoryDetail, Comments, Saved, Search, Settings, Browser)
+HackerNews/
+├── App/                       SwiftUI app entry, deep links, tab shell
+├── Core/Engine/
+│   ├── include/hn/            Public C++ engine headers
+│   │   ├── Types.hpp          Items, stories, comments, snapshots, telemetry
+│   │   ├── Feed.hpp           6 feed identifiers
+│   │   ├── Engine.hpp         Engine facade and command API
+│   │   ├── Dispatcher.hpp     Single command loop + delayed timer queue
+│   │   ├── ApiClient.hpp      Coalescing, retries, bounded request batches
+│   │   ├── Store.hpp          SQLite write-behind persistence
+│   │   ├── SearchIndex.hpp    In-memory token index + substring fallback
+│   │   ├── Tree.hpp           Comment tree builder with cycle guards
+│   │   ├── Json.hpp           Dependency-free JSON parser
+│   │   ├── Text.hpp           HTML, domains, relative time, feed paths
+│   │   ├── CachePolicy.hpp    5m fresh / 30m stale / 24h max
+│   │   └── Transport.hpp      Platform HTTP boundary
+│   ├── src/                   Engine implementation
+│   ├── platform/
+│   │   └── AppleTransport.mm  NSURLSession isolation (ObjC++)
+│   ├── Bridge/
+│   │   ├── HNEngine.h         Typed Objective-C facade + listener protocol
+│   │   └── HNEngine.mm        ObjC++ conversion and main-queue delivery
+│   ├── EngineClient.swift     ObservableObject adapter over the bridge
+│   └── EngineModels.swift     Swift presentation models and snapshot mapping
+├── Features/                  Home, StoryDetail, Comments, Saved, Search, Settings
+├── Shared/                    Components and small presentation extensions
+└── Domain/                    FeedType bridge mapping
 ```
 
-**C++ Core Engine** (`HackerNews/Core/CppCore/`):
-* `include/HNTypes.hpp` - `HNItem`, `CommentNode`, `FeedType`
-* `include/HNCppEngine.hpp` / `src/HNCppEngine.cpp` - deduplication (`unordered_set`), chunking (`chunkIDs`), merge, comment tree BFS, `stripHTML`, `timeAgo`, `domain`, `search`, `evictionPlan`
-* `include/CachePolicyCpp.hpp` / `src/CachePolicyCpp.cpp` - single source of truth for 5m/30m/24h
-* `Bridge/HNCppBridge.h/.mm` - Objective-C++ bridge to Swift
-* `CppEngine.swift` - Swift facade (`HNCppBridge.endpoint(forFeed:)`, `deduplicate`, `chunk`, `stripHTML`, etc.)
+### Event-driven core
 
-SwiftUI is `@MainActor`, persistence is `PersistenceController` actor-isolated, networking is `URLSession` + `async/await` with bounded concurrency (`AsyncSemaphore`, `httpMaximumConnectionsPerHost=12`). Swift calls C++ for hot paths.
+`hn::Engine` creates:
 
-## API Architecture
+* one **worker dispatcher** thread that executes every command,
+* one **timer** thread for retries, heartbeats and delayed work,
+* an `ApiClient` that posts network completions back onto the dispatcher.
 
-```
-https://hacker-news.firebaseio.com/v0/
-  /topstories.json, /newstories.json, /beststories.json, /askstories.json, /showstories.json, /jobstories.json
-  /item/{id}.json  (story, comment, job, poll, pollopt)
-  /maxitem.json
-```
+All mutable engine state — feed pages, story snapshots, comment BFS state,
+saved IDs, metrics and status — is touched only on the dispatcher thread.
+Network callbacks never mutate state directly.
 
-* Single `APIClient` (`final class`, `@unchecked Sendable`) with 15s request / 30s resource timeout, `waitsForConnectivity`, retry once on 5xx/timeout.
-* `HackerNewsAPI` actor: deduplicates in-flight IDs (`inFlight: [Int: Task]`), chunked `fetchItems(ids:maxConcurrency:)` - 30-ID chunks, `maxConcurrency=12` via C++ `chunkIDs`, preserves input order.
-* Decoding: `HNItemDTO` forward-compatible (ignores unknown fields, all optional except `id`).
+### Snapshot + revision stream
 
-## Caching & Offline-First
+Every UI update is an immutable snapshot with a `revision`:
 
-```
-Local cache first -> show -> fetch network -> merge -> persist -> update UI
-```
+* `FeedSnapshot` — phase, ordered stories, last sync, offline/stale flags, error
+* `StorySnapshot` — story detail phase and payload
+* `CommentsSnapshot` — nested comment roots, loading/complete flags, totals
+* `SavedSnapshot` — saved rows
+* `Status` — cache counts, database size, uptime, metrics
 
-* `CachePolicy` / `CachePolicyCpp`: `fresh<5m`, `stale<30m`, `expired<24h`, `empty`.
-* `PersistenceController` (SwiftData, in-memory for tests): `CachedStory`, `CachedComment` (`isHnDeleted` not `isDeleted` to avoid `NSManagedObject.isDeleted` clash), `SavedStory`, `CacheMetadata` (ordered `storyIDs` per feed).
-* `StoryRepository.stories(for:page:)` - returns cached if fresh, otherwise triggers background `refresh()`. Pagination via `loadedIDs` and `page*pageSize`.
-* `CommentRepository` - BFS level-by-level (not depth-first recursion) with C++ chunking (25 per chunk, 12 concurrent), hard cap 500, per-node branching limited to 30, deduped next level. High-volume (>100) streams: first 30 in <1s (`loadCommentsStreaming`), remaining in background, deepens 3->6.
-* `Saved` is user-owned, never evicted by `evictExpiredCache(maxFeedItems:200, maxAge:3d)` or `clearAllCache(keepSaved:true)`.
+The bridge converts these to Objective-C models and delivers listener callbacks
+on the main queue. `EngineClient` mirrors them into Combine publishers; view
+models map them into Swift structs and forward user intents as commands.
 
-Offline: `ConnectivityMonitor` (`NWPathMonitor`) shows `Offline · Showing cached content`. Pull-to-refresh keeps cached visible.
+### Networking
 
-## Persistence Strategy
+`AppleTransport.mm` is the only Apple networking code. It performs an
+`NSURLSession` request and reports status, body, error class and latency. All
+retry, in-flight request coalescing, ordering, batching and timeout policy live
+in C++:
 
-SwiftData `ModelContainer` (`isStoredInMemoryOnly` for tests). `fetchStories(for:)` uses `CacheMetadata` order, fallback to `feedTypeRaw` filter. `isSaved` checks `SavedStory`. `clearAllCache` deletes stories/comments/metadata but spares `Saved`.
+* feed IDs: `topstories.json`, `newstories.json`, `beststories.json`,
+  `askstories.json`, `showstories.json`, `jobstories.json`
+* items: `item/{id}.json`, `maxitem.json`
+* base URL: `https://hacker-news.firebaseio.com/v0/`
+* retries: two attempts with 350ms / 800ms backoff for transient failures
+* feed batch concurrency: 8
+* comment batch concurrency: 12
+* duplicate item requests are merged through a waiter list
 
-## How to Run
+### Persistence and cache policy
+
+`Store` uses the SQLite C API directly with WAL mode:
+
+* `stories` — decoded stories keyed by HN item ID
+* `comments` — flat comment rows keyed by comment ID
+* `saved` — user-owned saved rows (never evicted)
+* `feed_meta` — ordered feed ID lists and fetch timestamps
+
+SQLite is the write-behind journal. The engine updates the in-memory book,
+emits a snapshot, and persists in the same command turn. The cache policy is a
+single C++ source of truth:
+
+* fresh: `< 5 minutes`
+* stale: `< 30 minutes`
+* expired: `< 24 hours`
+* eviction keeps saved stories, feed head (200 IDs) and 3 days of data
+
+Saved stories survive `Clear Cache (Keep Saved)`. `Clear Everything` removes
+stories, comments, feed metadata and saved rows.
+
+### Comments
+
+The comment loader is a level-by-level BFS, not recursive network traversal:
+
+* root IDs come from the story's `kids`
+* 25 IDs per batch, 12 concurrent requests
+* hard cap 500 comments
+* maximum depth 6 levels of replies
+* at most 30 branches per node
+* progressive snapshots stream into the UI as each level completes
+* the tree builder breaks cycles and depth overflows deterministically
+
+### Search
+
+Search is local and network-free, because the official HN API has no full-text
+search. `SearchIndex` maintains:
+
+* a token posting list over title, author, domain and story text
+* prefix matching for partial words
+* substring/field weighting fallback
+* deterministic ordering by relevance, score, creation time and ID
+
+The index is rebuilt from SQLite on launch and updated as stories are fetched.
+
+## How to run
 
 ```bash
 xcodegen generate
 open HackerNews.xcodeproj
-# Select iPhone 17 simulator or your iPhone (Darrel Vengeance's iphone, 00008030-00024C860C60402E)
-# Signing: TARGETS > HackerNews > Signing & Capabilities > Team: L8HTG27444 (AasishDairel)
-# Bundle ID: com.aasishdarrel.hacknews (change if taken)
+# Select a simulator or your connected iPhone.
+# Signing: enable automatic signing and choose the team that matches your
+# local Apple Development profile.
+# Bundle ID: com.aasishdarrel.hacknews (change if it is taken).
 # Cmd+R
 ```
 
-CLI:
-```bash
-xcodebuild -project HackerNews.xcodeproj -scheme HackerNews -destination 'platform=iOS Simulator,name=iPhone 17,OS=26.3.1' build
-xcodebuild -project HackerNews.xcodeproj -scheme HackerNews -destination 'platform=iOS,id=00008030-00024C860C60402E' -allowProvisioningUpdates build
-xcrun devicectl device install app --device 00008030-00024C860C60402E Build/Products/Debug-iphoneos/HackerNews.app
-```
-
-## How to Run Tests
+Command line:
 
 ```bash
-xcodebuild test -project HackerNews.xcodeproj -scheme HackerNews -destination 'platform=iOS Simulator,name=iPhone 17,OS=26.3.1'
-# 41 tests: HNItemDTO, Persistence, StoryRepository, CommentTests (including high-volume), ViewModel, APIClient
+# Simulator
+xcodebuild -project HackerNews.xcodeproj -scheme HackerNews \
+  -destination 'platform=iOS Simulator,name=iPhone 17,OS=26.3.1' build
+
+# Connected device (replace the UDID and team with your own)
+xcodebuild -project HackerNews.xcodeproj -scheme HackerNews \
+  -destination 'platform=iOS,id=<DEVICE_UDID>' \
+  -allowProvisioningUpdates build
+
+xcrun devicectl device install app --device <DEVICE_UDID> \
+  <DerivedData>/Build/Products/Debug-iphoneos/HackerNews.app
+xcrun devicectl device process launch --device <DEVICE_UDID> \
+  com.aasishdarrel.hacknews
 ```
 
-Tests use `MockHackerNewsAPI`/`MockAPIClient` (`@unchecked Sendable`), `PersistenceController(inMemory:true)`. No live network.
+## Tests
+
+```bash
+xcodebuild test -project HackerNews.xcodeproj -scheme HackerNews \
+  -destination 'platform=iOS Simulator,name=iPhone 17,OS=26.3.1'
+```
+
+19 tests, no live network:
+
+* `HNCoreTests.mm` — C++ XCTest covering JSON, HTML/entities, domains,
+  relative time, feed paths, cache freshness boundaries, comment-tree ordering
+  and cycle breaking, search indexing, SQLite stories/comments/saved/clear,
+  and dispatcher ordering/timers.
+* `HNEngineBridgeTests.swift` — Objective-C++ bridge and engine lifecycle:
+  start/status/version, save/unsave round trips, local search start state,
+  clear-cache behavior, and story snapshot delivery.
+
+The same suite runs on a connected iPhone with:
+
+```bash
+xcodebuild test -project HackerNews.xcodeproj -scheme HackerNews \
+  -destination 'platform=iOS,id=<DEVICE_UDID>' \
+  -allowProvisioningUpdates
+```
 
 ## Features
 
-* Home feed with 6 feeds (Top/New/Best/Ask/Show/Jobs) via `FeedType`, pull-to-refresh, infinite scroll, skeletons, offline banner (`OfflineBanner`).
-* Story row: title, domain (`CppEngine.domain`), score, author, `timeAgo` (C++), comment count, saved state, 44pt targets.
-* Story detail: `SFSafariViewController`, share sheet, HTML `text` via `stripHTML`/`hnAttributedString` (C++ fast path), haptics/sound (respect settings).
-* Comments: nested `CommentNode` tree, `CommentTreeView` with collapse/expand (haptics, `Reduce Motion` fade), `isHnDeleted`/`isDead` handling, `LazyVStack` flatten, progressive loading footer (“Fetching replies…”).
-* Saved: `SavedView`/`SavedViewModel`, swipe to unsave, search, persists across restarts.
-* Search: local `StoryRepository.search(query:)` via C++ `HNCppEngine::search` over cached titles/domains/authors.
-* Settings: Appearance (system/light/dark), Haptics/Sound toggles (`SettingsStore` `@MainActor`), clear cache (keep saved), About, deep link `hnreader://story/123`.
-* A11y: Dynamic Type, VoiceOver labels/hints, semantic colors, materials, SF Symbols, minimal animations with `Reduce Motion`.
+* Six feeds: Top, New, Best, Ask, Show, Jobs
+* Offline-first feed with cached stories and an offline banner
+* Infinite scroll and pull-to-refresh
+* Saved stories with swipe-to-unsave and local filtering
+* Local search over cached stories
+* Story detail with article browser, share sheet, HTML body rendering
+* Nested comments with collapse/expand and progressive streaming
+* Deep link: `hnreader://story/123`
+* Haptics and system sounds, respecting user settings
+* Appearance (system/light/dark)
+* Settings engine diagnostics: cached rows, database size, requests, retries,
+  cache hit rate, latency, snapshots and uptime
+* X-style launch animation
+* Dynamic Type, VoiceOver labels, Reduce Motion support
 
-## Dependencies
+## Known limitations
 
-None third-party. `xcodegen` only for project generation. Native: SwiftUI, SwiftData, URLSession, Network, SafariServices, os.Logger, AVFoundation, UIKit haptics.
-
-## Known Limitations
-
-* HN API has no full-text search — search is local cached only.
-* External article HTML not mirrored (in-app browser only, URL cached).
-* Comment streaming caps at 500 and per-node 30 to avoid 1313-descendant explosion; “Load more” not yet explicit for truncated tails.
-* Background fetch is opportunistic (`evictExpiredCache` on launch), not `BGTaskScheduler`.
-
-## Technical Decisions
-
-* C++20 core for hot paths (dedupe, chunk, HTML, freshness) — measurable for 400-node trees, shared via `HNCppBridge` not Swift-C++ interop to keep ObjC bridging simple.
-* `isHnDeleted` rename avoids `NSManagedObject.isDeleted` SwiftData clash that caused high-volume deleted comments to persist as `false`.
-* BFS not DFS for comments prevents 5s+ sequential depth-first awaits.
-* `final class APIClient` not `actor` to fix `non-Sendable T.Type` Swift 6 warning.
-* `PersistenceController` `@MainActor` with `nonisolated` inits for testability; `MockHackerNewsAPI` is `@unchecked Sendable` class not actor to allow test mutation.
+* HN has no full-text search API; search covers only locally cached stories.
+* Comment loading intentionally caps at 500 nodes, depth 6 and 30 branches per
+  node to avoid pathological threads; truncated tails are not paginated.
+* External article HTML is not mirrored; articles open in Safari.
+* Cache eviction is opportunistic on launch/background, not scheduled with
+  `BGTaskScheduler`.

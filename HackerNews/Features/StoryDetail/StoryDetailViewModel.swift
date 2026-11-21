@@ -1,104 +1,113 @@
 import Foundation
+import Combine
 
+/// Story detail view model. Story and comment trees are engine snapshots;
+/// only collapse state and sheet presentation live here.
 @MainActor
 final class StoryDetailViewModel: ObservableObject {
-    @Published var story: CachedStory?
+    @Published private(set) var story: Story?
     @Published var comments: [CommentNode] = []
-    @Published var isLoadingStory = false
-    @Published var isLoadingComments = false
-    @Published var errorMessage: String?
-    @Published var isSaved = false
+    @Published private(set) var isLoadingStory = false
+    @Published private(set) var isLoadingComments = false
+    @Published private(set) var commentsComplete = false
+    @Published private(set) var commentTotal = 0
+    @Published private(set) var errorMessage: String?
+    @Published private(set) var isSaved = false
     @Published var showSafari = false
 
     private let storyID: Int
-    private let storyRepo: StoryRepositoryProtocol
-    private let commentRepo: CommentRepository
-    private let persistence: PersistenceController
+    private let client: EngineClient
+    private var cancellables = Set<AnyCancellable>()
+    private var hasStarted = false
 
-    init(storyID: Int,
-         storyRepo: StoryRepositoryProtocol? = nil,
-         commentRepo: CommentRepository? = nil,
-         persistence: PersistenceController? = nil) {
+    init(storyID: Int, client: EngineClient = .shared) {
         self.storyID = storyID
-        self.storyRepo = storyRepo ?? StoryRepository()
-        self.commentRepo = commentRepo ?? CommentRepository()
-        self.persistence = persistence ?? PersistenceController.shared
-    }
+        self.client = client
 
-    func load() async {
-        isLoadingStory = true
-        defer { isLoadingStory = false }
-        // Retry with backoff for transient Firebase hiccups (prevents cold 'Failed to load')
-        var lastErr: Error?
-        var s: CachedStory?
-        for attempt in 0...2 {
-            do {
-                s = try await storyRepo.fetchStory(id: storyID)
-                break
-            } catch {
-                lastErr = error
-                if let api = error as? APIError, !api.isRetryable || attempt == 2 { break }
-                // Also map non-APIError retryable via APIError.map
-                let mapped = APIError.map(error)
-                if !mapped.isRetryable || attempt == 2 { break }
-                let backoff: UInt64 = attempt == 0 ? 500_000_000 : 900_000_000
-                try? await Task.sleep(nanoseconds: backoff)
-                if Task.isCancelled { break }
+        client.$storySnapshots
+            .compactMap { $0[storyID] }
+            .sink { [weak self] snapshot in
+                self?.applyStory(snapshot)
             }
+            .store(in: &cancellables)
+
+        client.$commentsSnapshots
+            .compactMap { $0[storyID] }
+            .sink { [weak self] snapshot in
+                self?.applyComments(snapshot)
+            }
+            .store(in: &cancellables)
+
+        client.$savedStories
+            .sink { [weak self] saved in
+                guard let self else { return }
+                self.isSaved = saved.contains { $0.storyID == self.storyID }
+            }
+            .store(in: &cancellables)
+
+        if let snapshot = client.storySnapshot(for: storyID) {
+            applyStory(snapshot)
         }
-        if let resolved = s {
-            story = resolved
-            isSaved = persistence.isSaved(storyID: resolved.id)
-            errorMessage = nil
-            await loadComments()
-            return
+        if let snapshot = client.commentsSnapshot(for: storyID) {
+            applyComments(snapshot)
         }
-        // Fallback to cached story if network ultimately failed
-        if let cached = persistence.fetchCachedStory(id: storyID) {
-            story = cached
-            isSaved = persistence.isSaved(storyID: cached.id)
-            errorMessage = nil
-            await loadComments()
-            return
-        }
-        errorMessage = (lastErr as? APIError)?.errorDescription ?? lastErr?.localizedDescription ?? "Unknown error"
     }
 
-    func loadComments() async {
-        guard let story else { return }
-        isLoadingComments = true
-        defer { isLoadingComments = false }
+    func start() {
+        guard !hasStarted else { return }
+        hasStarted = true
+        client.openStory(storyID)
+        client.loadComments(for: storyID, force: false)
+    }
 
-        // Offline-first: show cached instantly (no network)
-        let cached = persistence.fetchComments(for: story.id)
-        if !cached.isEmpty {
-            comments = commentRepo.buildTree(comments: cached, rootKids: nil)
-            // Trigger background refresh without blocking UI
-            Task { _ = await self.commentRepo.loadComments(for: story) }
-            return
-        }
-
-        // No cache: progressive streaming - 30 in <1s, then rest, handles 1313 descendant stories
-        await commentRepo.loadCommentsStreaming(for: story) { [weak self] nodes in
-            guard let self else { return }
-            self.comments = nodes
-        }
-
-        if comments.isEmpty {
-            // Fallback full load (e.g., kids empty or streaming failed)
-            comments = await commentRepo.loadComments(for: story)
-        }
+    func refresh() async {
+        client.refreshStory(storyID)
+        client.loadComments(for: storyID, force: true)
+        try? await Task.sleep(nanoseconds: 600_000_000)
     }
 
     func toggleSave() {
-        guard let story else { return }
-        isSaved = storyRepo.toggleSave(storyID: story.id)
-        objectWillChange.send()
+        guard story != nil else { return }
+        isSaved.toggle()
+        client.toggleSave(storyID)
+        if isSaved {
+            SoundManager.playSaveSound()
+        } else {
+            SoundManager.playUnsaveSound()
+        }
+        HapticsManager.lightImpact()
     }
 
     func shareURL() -> URL? {
         guard let story else { return nil }
-        if let urlStr = story.url, let url = URL(string: urlStr) { return url }
+        if let urlString = story.url, let url = URL(string: urlString) { return url }
         return URL(string: "https://news.ycombinator.com/item?id=\(story.id)")
+    }
+
+    private func applyStory(_ snapshot: StorySnapshotModel) {
+        story = snapshot.story
+        isLoadingStory = snapshot.phase == .loading || snapshot.phase == .refreshing
+        if let story {
+            isSaved = story.isSaved
+        }
+        if let error = snapshot.error, snapshot.story == nil {
+            errorMessage = error.message
+        } else {
+            errorMessage = nil
+        }
+    }
+
+    private func applyComments(_ snapshot: CommentsSnapshotModel) {
+        var collapsed = Set<Int>()
+        for node in comments {
+            node.collectCollapsed(into: &collapsed)
+        }
+        comments = snapshot.roots.map { $0.applyingCollapsed(collapsed) }
+        isLoadingComments = snapshot.loading
+        commentsComplete = snapshot.complete
+        commentTotal = snapshot.totalLoaded
+        if let error = snapshot.error {
+            errorMessage = error.message
+        }
     }
 }

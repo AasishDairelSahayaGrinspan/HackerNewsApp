@@ -1,23 +1,20 @@
 import SwiftUI
-import SwiftData
 
 @main
 struct HackerNewsApp: App {
     @StateObject private var settings: SettingsStore
-    @StateObject private var connectivity: ConnectivityMonitor
+    @StateObject private var engine: EngineClient
     @StateObject private var launchController = LaunchController()
-    let persistence: PersistenceController
+    @Environment(\.scenePhase) private var scenePhase
 
     @MainActor
     init() {
-        // MainActor isolated shared access
-        let s = SettingsStore.shared
-        let c = ConnectivityMonitor.shared
-        let p = PersistenceController.shared
-        _settings = StateObject(wrappedValue: s)
-        _connectivity = StateObject(wrappedValue: c)
-        persistence = p
+        let settingsStore = SettingsStore.shared
+        let engineClient = EngineClient.shared
+        _settings = StateObject(wrappedValue: settingsStore)
+        _engine = StateObject(wrappedValue: engineClient)
         _launchController = StateObject(wrappedValue: LaunchController())
+        engineClient.start()
     }
 
     var body: some Scene {
@@ -25,26 +22,28 @@ struct HackerNewsApp: App {
             ZStack {
                 RootTabView()
                     .environmentObject(settings)
-                    .environmentObject(connectivity)
-                    .modelContainer(persistence.container)
+                    .environmentObject(engine)
                     .preferredColorScheme(colorScheme)
                     .onOpenURL { url in
                         handleDeepLink(url)
                     }
                     .task {
                         try? await Task.sleep(nanoseconds: 2_000_000_000)
-                        await MainActor.run {
-                            persistence.evictExpiredCache()
-                        }
+                        engine.evictCache()
                     }
 
-                // Premium X-style 3D launch overlay — icon→3D→UI continuity
+                // X-style 3D launch overlay — icon→3D→UI continuity
                 if launchController.shouldShowAnimation && !launchController.finished {
                     LaunchAnimationView {
                         launchController.complete()
                     }
                     .transition(.opacity)
                     .zIndex(10)
+                }
+            }
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .background {
+                    engine.evictCache()
                 }
             }
         }
@@ -59,7 +58,10 @@ struct HackerNewsApp: App {
     }
 
     private func handleDeepLink(_ url: URL) {
-        guard url.scheme == "hnreader", url.host == "story", let idStr = url.pathComponents.last, let id = Int(idStr) else { return }
+        guard url.scheme == "hnreader",
+              url.host == "story",
+              let idString = url.pathComponents.last,
+              let id = Int(idString) else { return }
         NotificationCenter.default.post(name: .openStoryDeepLink, object: id)
     }
 }
@@ -96,8 +98,8 @@ struct RootTabView: View {
             SoundManager.playSelectionTick()
             HapticsManager.selectionChanged()
         }
-        .onReceive(NotificationCenter.default.publisher(for: .openStoryDeepLink)) { notif in
-            if let id = notif.object as? Int {
+        .onReceive(NotificationCenter.default.publisher(for: .openStoryDeepLink)) { notification in
+            if let id = notification.object as? Int {
                 SoundManager.playNavigationTap()
                 deepLinkStoryID = id
                 selectedTab = 0
@@ -119,8 +121,6 @@ struct RootTabView: View {
 }
 
 struct IntWrapper: Identifiable, Hashable {
-    let id = UUID()
+    var id: Int { value }
     let value: Int
-    func hash(into hasher: inout Hasher) { hasher.combine(id) }
-    static func == (lhs: IntWrapper, rhs: IntWrapper) -> Bool { lhs.id == rhs.id }
 }

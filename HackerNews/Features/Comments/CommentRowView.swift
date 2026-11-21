@@ -8,10 +8,10 @@ struct CommentRowView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 6) {
-                Text(node.comment.author ?? "unknown")
+                Text(node.author ?? "unknown")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.orange)
-                if let date = node.comment.createdAt {
+                if let date = node.createdAt {
                     Text(date.timeAgoDisplay())
                         .font(.caption2)
                         .foregroundStyle(.secondary)
@@ -32,15 +32,15 @@ struct CommentRowView: View {
                 }
             }
 
-            if node.comment.isHnDeleted {
+            if node.isHnDeleted {
                 Text("[deleted]")
                     .font(.subheadline.italic())
                     .foregroundStyle(.secondary)
-            } else if node.comment.isDead {
+            } else if node.isDead {
                 Text("[dead]")
                     .font(.subheadline.italic())
                     .foregroundStyle(.secondary)
-            } else if let text = node.comment.text {
+            } else if let text = node.text {
                 Text(text.hnAttributedString)
                     .font(.subheadline)
                     .lineSpacing(2)

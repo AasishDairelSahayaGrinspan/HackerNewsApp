@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct StoryRowView: View {
-    let story: CachedStory
+    let story: Story
     var isSaved: Bool
     var onSaveTap: () -> Void
     var onShareTap: (() -> Void)?
@@ -29,15 +29,15 @@ struct StoryRowView: View {
                 .accessibilityAddTraits(.isButton)
             }
 
-            if let text = story.text, !text.isEmpty, story.url == nil {
-                Text(text.strippedHTML)
+            if !story.plainText.isEmpty, story.url == nil {
+                Text(story.plainText)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .lineLimit(2)
             }
 
             HStack(spacing: 4) {
-                if let domain = story.domain {
+                if let domain = story.domain, !domain.isEmpty {
                     Text(domain)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
@@ -93,6 +93,13 @@ struct StoryRowView: View {
 }
 
 #Preview {
-    let s = CachedStory(id: 123, title: "OpenAI releases new model that can reason across images and text with stunning performance", author: "dhouston", createdAt: Date().addingTimeInterval(-3600*4), score: 342, url: "https://example.com", commentCount: 87)
+    let s = Story(id: 123,
+                  title: "OpenAI releases new model that can reason across images and text with stunning performance",
+                  author: "dhouston",
+                  url: "https://example.com",
+                  domain: "example.com",
+                  score: 342,
+                  commentCount: 87,
+                  createdAt: Date().addingTimeInterval(-3600 * 4))
     StoryRowView(story: s, isSaved: false, onSaveTap: {})
 }

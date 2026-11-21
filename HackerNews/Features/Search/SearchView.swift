@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 
 struct SearchView: View {
     @StateObject private var viewModel = SearchViewModel()
@@ -9,14 +10,16 @@ struct SearchView: View {
         NavigationStack {
             Group {
                 if viewModel.query.isEmpty {
-                    EmptyStateView(icon: "magnifyingglass", title: "Search cached stories", message: "Search finds titles, authors, domains and story text from stories you've already loaded. This is local search — no network search API is used, as the official HN API doesn't provide full-text search.")
+                    EmptyStateView(icon: "magnifyingglass", title: "Search cached stories", message: "Search finds titles, authors, domains and story text from stories you've already loaded. The engine keeps a local inverted index — no network search API is used, as the official HN API doesn't provide full-text search.")
                 } else if viewModel.results.isEmpty {
                     EmptyStateView(icon: "doc.questionmark", title: "No results", message: "No cached stories match \"\(viewModel.query)\". Try a different keyword or load more stories from the News tab.")
                 } else {
                     List {
                         Section(header: Text("Search cached stories · \(viewModel.results.count) results").font(.caption)) {
-                            ForEach(viewModel.results, id: \.id) { story in
-                                StoryRowView(story: story, isSaved: viewModel.isSaved(story), onSaveTap: { viewModel.toggleSave(story) })
+                            ForEach(viewModel.results) { story in
+                                StoryRowView(story: story,
+                                             isSaved: story.isSaved,
+                                             onSaveTap: { viewModel.toggleSave(story) })
                                     .listRowInsets(EdgeInsets())
                                     .listRowSeparator(.hidden)
                                     .onTapGesture {
@@ -33,8 +36,8 @@ struct SearchView: View {
             }
             .navigationTitle("Search")
             .searchable(text: $viewModel.query, prompt: "Search titles, authors, domains")
-            .navigationDestination(item: selectedWrapper) { w in
-                StoryDetailView(storyID: w.value)
+            .navigationDestination(item: selectedWrapper) { wrapper in
+                StoryDetailView(storyID: wrapper.value)
             }
         }
     }
@@ -49,20 +52,38 @@ final class SearchViewModel: ObservableObject {
     @Published var query = "" {
         didSet { performSearch() }
     }
-    @Published var results: [CachedStory] = []
+    @Published private(set) var results: [Story] = []
 
-    private let repo: StoryRepositoryProtocol
+    private let client: EngineClient
+    private var cancellables = Set<AnyCancellable>()
 
-    init(repo: StoryRepositoryProtocol? = nil) {
-        if let repo { self.repo = repo } else { self.repo = StoryRepository() }
+    init(client: EngineClient = .shared) {
+        self.client = client
+        client.$savedStories
+            .sink { [weak self] saved in
+                guard let self else { return }
+                let ids = Set(saved.map(\.storyID))
+                self.results = self.results.map { $0.withSaved(ids.contains($0.id)) }
+            }
+            .store(in: &cancellables)
     }
 
     private func performSearch() {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { results = []; return }
-        results = repo.search(query: trimmed)
+        guard !trimmed.isEmpty else {
+            results = []
+            return
+        }
+        results = client.search(trimmed)
     }
 
-    func isSaved(_ story: CachedStory) -> Bool { repo.isSaved(storyID: story.id) }
-    func toggleSave(_ story: CachedStory) { _ = repo.toggleSave(storyID: story.id); objectWillChange.send() }
+    func toggleSave(_ story: Story) {
+        client.toggleSave(story.id)
+        if story.isSaved {
+            SoundManager.playUnsaveSound()
+        } else {
+            SoundManager.playSaveSound()
+        }
+        HapticsManager.lightImpact()
+    }
 }

@@ -1,5 +1,7 @@
 import Foundation
 
+/// Feed identifiers mirror the native engine's `hn::Feed`. Swift never
+/// constructs API paths; it only forwards the selected feed across the bridge.
 enum FeedType: String, CaseIterable, Identifiable, Sendable {
     case top = "Top"
     case new = "New"
@@ -10,14 +12,25 @@ enum FeedType: String, CaseIterable, Identifiable, Sendable {
 
     var id: String { rawValue }
 
-    var endpointPath: String {
+    var bridgeValue: HNFeed {
         switch self {
-        case .top: return "topstories.json"
-        case .new: return "newstories.json"
-        case .best: return "beststories.json"
-        case .ask: return "askstories.json"
-        case .show: return "showstories.json"
-        case .jobs: return "jobstories.json"
+        case .top: return .top
+        case .new: return .new
+        case .best: return .best
+        case .ask: return .ask
+        case .show: return .show
+        case .jobs: return .jobs
+        }
+    }
+
+    init(_ feed: HNFeed) {
+        switch feed {
+        case .new: self = .new
+        case .best: self = .best
+        case .ask: self = .ask
+        case .show: self = .show
+        case .jobs: self = .jobs
+        default: self = .top
         }
     }
 

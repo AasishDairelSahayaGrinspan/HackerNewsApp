@@ -79,14 +79,7 @@ struct StoryDetailView: View {
                 } else {
                     EmptyStateView(icon: "exclamationmark.triangle", title: "Failed to load", message: viewModel.errorMessage ?? "Couldn't reach Hacker News. Check your connection and try again.", actionTitle: "Retry") {
                         SoundManager.playTap()
-                        Task { await viewModel.load() }
-                    }
-                    .task {
-                        // Auto-retry once after 1.2s if we landed on failed with no story (transient)
-                        if viewModel.story == nil && !viewModel.isLoadingStory {
-                            try? await Task.sleep(nanoseconds: 1_200_000_000)
-                            if viewModel.story == nil && viewModel.errorMessage != nil { await viewModel.load() }
-                        }
+                        Task { await viewModel.refresh() }
                     }
                 }
             }
@@ -131,14 +124,14 @@ struct StoryDetailView: View {
             }
         }
         .task {
-            await viewModel.load()
+            viewModel.start()
         }
         .refreshable {
-            await viewModel.load()
+            await viewModel.refresh()
         }
     }
 
-    private func header(story: CachedStory) -> some View {
+    private func header(story: Story) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(story.title ?? "(No title)")
                 .font(.title3.weight(.bold))
@@ -194,7 +187,7 @@ struct StoryDetailView: View {
         .padding(.horizontal, 16)
     }
 
-    private func actionBar(story: CachedStory) -> some View {
+    private func actionBar(story: Story) -> some View {
         HStack(spacing: 16) {
             Label("\(story.commentCount) comments", systemImage: "bubble.left.fill")
                 .font(.caption)
@@ -208,10 +201,7 @@ struct StoryDetailView: View {
     }
 
     private var totalCommentCount: Int {
-        func count(_ nodes: [CommentNode]) -> Int {
-            nodes.reduce(0) { $0 + 1 + count($1.children) }
-        }
-        return count(viewModel.comments)
+        viewModel.commentTotal
     }
 }
 

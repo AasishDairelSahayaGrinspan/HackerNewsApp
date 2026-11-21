@@ -1,44 +1,41 @@
 import Foundation
-import SwiftData
+import Combine
 
 @MainActor
 final class SavedViewModel: ObservableObject {
-    @Published var savedStories: [SavedStory] = []
-    @Published var cachedStories: [Int: CachedStory] = [:]
+    @Published private(set) var savedStories: [SavedStory] = []
     @Published var searchText = ""
 
-    private let persistence: PersistenceController
+    private let client: EngineClient
+    private var cancellables = Set<AnyCancellable>()
 
-    init(persistence: PersistenceController? = nil) {
-        self.persistence = persistence ?? PersistenceController.shared
-        refresh()
+    init(client: EngineClient = .shared) {
+        self.client = client
+        client.$savedStories
+            .sink { [weak self] stories in
+                self?.savedStories = stories
+            }
+            .store(in: &cancellables)
+        savedStories = client.saved()
     }
 
     func refresh() {
-        savedStories = persistence.fetchSavedStories()
-        var map: [Int: CachedStory] = [:]
-        for s in savedStories {
-            if let cached = persistence.fetchCachedStory(id: s.storyID) {
-                map[s.storyID] = cached
-            }
-        }
-        cachedStories = map
+        savedStories = client.saved()
     }
 
     func unsave(_ saved: SavedStory) {
-        persistence.unsaveStory(id: saved.storyID)
+        client.setSaved(false, storyID: saved.storyID)
         HapticsManager.lightImpact()
         SoundManager.playUnsaveSound()
-        refresh()
     }
 
     var filtered: [SavedStory] {
         guard !searchText.isEmpty else { return savedStories }
         let lower = searchText.lowercased()
-        return savedStories.filter { s in
-            s.title?.lowercased().contains(lower) == true ||
-            s.author?.lowercased().contains(lower) == true ||
-            String(s.storyID).contains(lower)
+        return savedStories.filter { saved in
+            saved.title?.lowercased().contains(lower) == true ||
+            saved.author?.lowercased().contains(lower) == true ||
+            String(saved.storyID).contains(lower)
         }
     }
 }

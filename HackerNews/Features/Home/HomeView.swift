@@ -2,15 +2,15 @@ import SwiftUI
 
 struct HomeView: View {
     @StateObject private var viewModel = HomeViewModel()
-    @EnvironmentObject var connectivity: ConnectivityMonitor
     @State private var selectedStoryID: Int?
     @Environment(\.accessibilityReduceMotion) var reduceMotion
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                OfflineBanner(isOffline: !connectivity.isOnline, lastFetched: viewModel.lastFetched)
-                    .animation(reduceMotion ? nil : .easeInOut, value: connectivity.isOnline)
+                OfflineBanner(isOffline: viewModel.isOffline || viewModel.isStale,
+                              lastFetched: viewModel.lastFetched)
+                    .animation(reduceMotion ? nil : .easeInOut, value: viewModel.isOffline)
 
                 feedPicker
                 content
@@ -42,7 +42,7 @@ struct HomeView: View {
                 await viewModel.refresh()
             }
             .task {
-                await viewModel.loadInitial()
+                viewModel.start()
             }
             .navigationDestination(item: selectedStoryIDWrapper) { wrapper in
                 StoryDetailView(storyID: wrapper.value)
@@ -52,7 +52,7 @@ struct HomeView: View {
 
     @ViewBuilder
     private var content: some View {
-        switch viewModel.loadState {
+        switch viewModel.phase {
         case .loading where viewModel.stories.isEmpty:
             List {
                 ForEach(0..<8, id: \.self) { _ in SkeletonRow() }
@@ -62,20 +62,11 @@ struct HomeView: View {
             .listStyle(.plain)
             .accessibilityLabel("Loading stories")
 
-        case .failed(nil, let error):
+        case .failed where viewModel.stories.isEmpty:
             EmptyStateView(
-                icon: "exclamationmark.triangle.fill",
-                title: error.errorDescription ?? "Something went wrong",
-                message: "Pull to refresh or check your connection.",
-                actionTitle: "Retry",
-                action: { Task { await viewModel.refresh() } }
-            )
-
-        case .failed(let cached, let error) where cached == nil || cached?.isEmpty == true:
-            EmptyStateView(
-                icon: "wifi.slash",
-                title: "You're offline",
-                message: error.errorDescription ?? "No cached content available.",
+                icon: viewModel.isOffline ? "wifi.slash" : "exclamationmark.triangle.fill",
+                title: viewModel.isOffline ? "You're offline" : "Something went wrong",
+                message: viewModel.errorMessage ?? "Pull to refresh or check your connection.",
                 actionTitle: "Retry",
                 action: { Task { await viewModel.refresh() } }
             )
@@ -91,7 +82,7 @@ struct HomeView: View {
                 )
             } else {
                 List {
-                    ForEach(viewModel.stories, id: \.id) { story in
+                    ForEach(viewModel.stories) { story in
                         StoryRowView(
                             story: story,
                             isSaved: viewModel.isSaved(story),
@@ -105,9 +96,8 @@ struct HomeView: View {
                             selectedStoryID = story.id
                         }
                         .onAppear {
-                            Task { await viewModel.loadMoreIfNeeded(currentItem: story) }
+                            viewModel.loadMoreIfNeeded(currentItem: story)
                         }
-                        // Divider
                         Divider().padding(.leading, 16)
                     }
                 }
