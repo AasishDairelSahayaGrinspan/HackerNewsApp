@@ -26,8 +26,8 @@ targets:
     info:
       path: HackerNews/Info.plist
       properties:
-        CFBundleDisplayName: Hacker News
-        CFBundleName: HackerNews
+        CFBundleDisplayName: YC News
+        CFBundleName: YC News
         UILaunchScreen: {}
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait

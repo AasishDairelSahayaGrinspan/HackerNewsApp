@@ -1,6 +1,6 @@
-# Hacker News — Native iOS app with a Swift backend
+# YC News — Native iOS app with a Swift backend
 
-A native Hacker News client for iPhone and iPad. SwiftUI renders the interface;
+An unofficial native Hacker News client for iPhone and iPad. SwiftUI renders the interface;
 a Swift backend owns networking, persistence, caching, comment traversal, search,
 state and telemetry. Views only subscribe to immutable snapshots and send
 intents — they no longer contain repositories, API clients, cache policy or

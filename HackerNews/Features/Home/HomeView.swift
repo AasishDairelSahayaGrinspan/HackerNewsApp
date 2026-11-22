@@ -15,7 +15,7 @@ struct HomeView: View {
                 feedPicker
                 content
             }
-            .navigationTitle("Hacker News")
+            .navigationTitle("YC News")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
